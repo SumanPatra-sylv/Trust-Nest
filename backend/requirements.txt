@@ -1,0 +1,32 @@
+# ScamShield Backend Requirements
+# ================================
+# Install: pip install -r requirements.txt
+
+# Core ML/Data Science
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+scipy>=1.11.0
+
+# Transformers for TinyBERT/DistilBERT
+transformers>=4.35.0
+torch>=2.1.0
+tokenizers>=0.15.0
+
+# ONNX for model export (mobile-friendly)
+onnx>=1.15.0
+onnxruntime>=1.16.0
+
+# API Backend
+fastapi>=0.104.0
+uvicorn>=0.24.0
+pydantic>=2.5.0
+
+# Utilities
+tqdm>=4.66.0
+python-multipart>=0.0.6
+
+# Development
+jupyter>=1.0.0
+matplotlib>=3.8.0
+seaborn>=0.13.0

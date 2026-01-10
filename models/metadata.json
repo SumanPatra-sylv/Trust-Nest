@@ -1,0 +1,14 @@
+{
+  "is_trained": true,
+  "feature_count": 1680,
+  "model_type": "LogisticRegression",
+  "structured_cols": [
+    "has_url",
+    "has_upi",
+    "has_otp",
+    "has_qr",
+    "has_phone",
+    "has_threat",
+    "has_urgency"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "model_type": "sklearn_tfidf_logreg",
+  "features": 1680,
+  "structured_cols": [
+    "has_url",
+    "has_upi",
+    "has_otp",
+    "has_qr",
+    "has_phone",
+    "has_threat",
+    "has_urgency"
+  ]
+}

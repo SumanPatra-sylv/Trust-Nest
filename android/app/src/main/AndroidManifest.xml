@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ScamShield Android Manifest
+    ===========================
+    Permissions and service declarations for the scam detection app.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.scamshield">
+
+    <!-- Permissions -->
+    
+    <!-- For reading notifications (SMS/WhatsApp) -->
+    <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" />
+    
+    <!-- For call screening -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
+    <uses-permission android:name="android.permission.BIND_SCREENING_SERVICE" />
+    
+    <!-- For overlay warnings -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    
+    <!-- For foreground service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    
+    <!-- For FCM (Guardian alerts) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
+    <!-- For Text-to-Speech -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    
+    <!-- For checking installed apps (dangerous app detection) -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
+    <application
+        android:name=".ScamShieldApplication"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="ScamShield"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.ScamShield">
+        
+        <!-- Main Activity -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.ScamShield">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        
+        <!-- Warning Overlay Activity -->
+        <activity
+            android:name=".services.WarningOverlayActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.ScamShield.Overlay"
+            android:excludeFromRecents="true" />
+        
+        <!-- Digital Arrest Warning Activity -->
+        <activity
+            android:name=".services.DigitalArrestWarningActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.ScamShield.Overlay" />
+
+        <!-- Message Shield Service (NotificationListener) -->
+        <service
+            android:name=".services.MessageShieldService"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+        
+        <!-- Digital Arrest Interrupter (Also NotificationListener) -->
+        <service
+            android:name=".services.DigitalArrestInterrupter"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+        
+        <!-- Call Shield Service (CallScreeningService) -->
+        <service
+            android:name=".services.CallShieldService"
+            android:exported="true"
+            android:permission="android.permission.BIND_SCREENING_SERVICE">
+            <intent-filter>
+                <action android:name="android.telecom.CallScreeningService" />
+            </intent-filter>
+        </service>
+        
+        <!-- FCM Service (for Guardian alerts) -->
+        <service
+            android:name=".services.ScamShieldMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        
+        <!-- Background detection service -->
+        <service
+            android:name=".services.ScamShieldForegroundService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false" />
+
+    </application>
+
+</manifest>
