@@ -1,68 +1,174 @@
-# ScamShield - Android Scam Detection App
+# ScamShield - Trust Nest
 
-An Android-first, privacy-preserving scam detection system for senior citizens.
+**Privacy-first scam detection for senior citizens.** Android app with on-device rule engine + DistilBERT for SMS/WhatsApp protection.
+
+> ⚠️ **Hackathon Project** - Not production-ready. Trained on synthetic data.
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        INCOMING MESSAGE                              │
+│                   (SMS / WhatsApp / Call Metadata)                   │
+└─────────────────────────────────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     RULE ENGINE (Always First)                       │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────────────┐│
+│  │   OTP   │ │   UPI   │ │  URL    │ │ Threat  │ │ Digital Arrest  ││
+│  │ Request │ │  Check  │ │Shortener│ │Language │ │ Pattern Match   ││
+│  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘ └────────┬────────┘│
+│       └───────────┴───────────┴───────────┴───────────────┘         │
+│                           Rule Score ≥ 60?                          │
+│                     YES → OVERRIDE (Skip ML)                        │
+└─────────────────────────────────────────────────────────────────────┘
+                                 │ NO (Uncertain)
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      DistilBERT CLASSIFIER                          │
+│         ┌─────────────────────────────────────────────┐              │
+│         │  distilbert-base-uncased (66M params)       │              │
+│         │  Trained on: SMS + WhatsApp (148 samples)   │              │
+│         │  Output: SAFE/SCAM + confidence score       │              │
+│         └─────────────────────────────────────────────┘              │
+└─────────────────────────────────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      GUARDIAN ESCALATION                            │
+│      High-risk (SCAM) OR Digital Arrest OR Family Impersonation     │
+│                    → Send FCM alert to guardian                      │
+└─────────────────────────────────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      USER-FACING OUTPUT                              │
+│  ┌──────────────┐  ┌──────────────────┐  ┌─────────────────────────┐│
+│  │  ✅ SAFE     │  │  ⚠️ SUSPICIOUS   │  │  🚨 SCAM               ││
+│  │  No action   │  │  Ask family      │  │  Block + Report        ││
+│  └──────────────┘  └──────────────────┘  └─────────────────────────┘│
+│                  + Bilingual Explanation (EN/Hindi)                  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Components
+
+| Layer | Component | Location | Purpose |
+|-------|-----------|----------|---------|
+| **Detection** | Rule Engine | `backend/rule_engine.py` | Deterministic pattern matching |
+| **Detection** | DistilBERT | `models/distilbert/` | Semantic classification |
+| **Detection** | Unified Detector | `backend/detector.py` | Pipeline orchestration |
+| **API** | FastAPI | `backend/app.py` | Backend inference |
+| **Android** | RuleEngine.kt | `android/.../detection/` | On-device rules |
+| **Android** | MessageShieldService | `android/.../services/` | Notification listener |
+| **Android** | GuardianMode | `android/.../guardian/` | Family pairing + FCM |
+
+---
 
 ## Quick Start
 
-### Backend (Optional - for fallback/training)
+### Backend
 ```bash
-cd backend
-pip install -r requirements.txt
-python classifier.py  # Train model
-python app.py         # Start server
+# Create venv and install
+python -m venv venv
+.\venv\Scripts\pip install -r backend/requirements.txt
+
+# Train model (optional - uses existing weights)
+.\venv\Scripts\python backend/train_distilbert.py
+
+# Run API
+.\venv\Scripts\python backend/app.py
 ```
 
-### Android App
-1. Open `android/` folder in Android Studio
-2. Sync Gradle
-3. Run on device/emulator
+### Test Detection
+```bash
+curl -X POST http://localhost:8000/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Share OTP to verify your payment"}'
+```
+
+### Android
+Open `android/` in Android Studio, sync Gradle, run on device.
+
+---
+
+## Detection Pipeline
+
+```
+Message → Rule Engine → DistilBERT → Guardian
+          (<10ms)       (~100ms)     (if high-risk)
+```
+
+**Priority Order:**
+1. **Rule Engine** catches explicit patterns (OTP, threats, URLs)
+2. **DistilBERT** handles ambiguous cases
+3. **Guardian** escalates high-risk to family
+
+---
+
+## Model Status
+
+| Model | Type | Status | Size |
+|-------|------|--------|------|
+| Rule Engine | Deterministic | ✅ Production | - |
+| TF-IDF | ML Baseline | ✅ Fallback | 80 KB |
+| DistilBERT | ML Primary | ✅ Trained | 256 MB |
+| ONNX | Export | ✅ Ready | 255 MB |
+
+See [MODEL_CARD.md](MODEL_CARD.md) for training details.
+
+---
+
+## Privacy Promise
+
+- ❌ No silent call recording
+- ❌ No message uploading to server
+- ❌ No contact scraping
+- ✅ On-device rule engine
+- ✅ User controls all data
+- ✅ Guardian alerts require explicit pairing
+
+---
 
 ## Project Structure
 
 ```
-KHISTIJ/
-├── backend/                    # Python backend (fallback only)
-│   ├── rule_engine.py         # Deterministic scam detection
-│   ├── feature_extractor.py   # Extract signal flags
-│   ├── classifier.py          # ML classifier (TF-IDF)
-│   ├── detector.py            # Unified detection pipeline
-│   └── app.py                 # FastAPI server
-│
-├── android/                    # Android app (Kotlin + Compose)
+Trust-Nest/
+├── backend/
+│   ├── rule_engine.py      # Deterministic detection
+│   ├── detector.py         # Unified pipeline
+│   ├── train_distilbert.py # Model training
+│   ├── export_model.py     # ONNX export
+│   └── app.py              # FastAPI server
+├── android/
 │   └── app/src/main/java/com/scamshield/
-│       ├── detection/         # On-device rule engine
-│       ├── services/          # Background services
-│       ├── guardian/          # Family pairing
-│       └── ui/                # Jetpack Compose screens
-│
-├── models/                     # Trained ML models
-│   ├── vectorizer.pkl
-│   └── classifier.pkl
-│
-└── public_*.csv               # Training datasets
+│       ├── detection/      # On-device rules
+│       ├── services/       # Background services
+│       ├── guardian/       # Family pairing
+│       └── ui/             # Compose screens
+├── models/
+│   └── distilbert/         # Trained model
+└── *.csv                   # Training data
 ```
 
-## Features
+---
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| Message Shield | ✅ | SMS + WhatsApp monitoring |
-| Call Shield | ✅ | Metadata-based warnings |
-| Digital Arrest | ✅ | Video call interruption |
-| Guardian Mode | ✅ | Family pairing + FCM |
-| Teach-Me Mode | ✅ | Educational lessons |
+## Limitations
 
-## Detection Architecture
+> ⚠️ This is a hackathon prototype, not production software.
 
-```
-Message → Rule Engine → ML Classifier → Guardian Escalation
-           (<10ms)       (fallback)      (if high risk)
-```
+- Trained on **synthetic data** (148 samples)
+- Test accuracy may not generalize to real-world scams
+- Model is large (256 MB) for mobile deployment
+- Hindi support is partial (transliteration only)
 
-## Privacy
+---
 
-- ❌ No silent call recording
-- ❌ No contact scraping
-- ❌ No message uploading
-- ✅ All detection on-device
-- ✅ Hash-based reporting only
+## License
+
+MIT License - Hackathon project for KHISTIJ.
