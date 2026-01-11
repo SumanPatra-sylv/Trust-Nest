@@ -9,9 +9,12 @@ env/
 .venv/
 ENV/
 
-# Model artifacts (large files - can be regenerated)
+# Model artifacts - LARGE files only (keep config/metadata)
 models/*.pkl
-models/distilbert/
+models/distilbert/model.safetensors
+models/distilbert/pytorch_model.bin
+models/checkpoints/
+models/logs/
 
 # IDE
 .idea/
