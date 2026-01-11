@@ -13,6 +13,7 @@ ENV/
 models/*.pkl
 models/distilbert/model.safetensors
 models/distilbert/pytorch_model.bin
+models/distilbert/onnx/model.onnx
 models/checkpoints/
 models/logs/
 

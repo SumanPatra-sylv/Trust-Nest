@@ -1,36 +1,34 @@
 """
-FastAPI Backend - Privacy Proxy & Training Server
-=================================================
-This is NOT for routine inference (that's on-device).
+FastAPI Backend - Unified Scam Detection API
+=============================================
+Exposes the Rule Engine → DistilBERT → Guardian pipeline.
 
-This backend is used for:
-1. Training ML models
-2. Heavy AI fallback (when device can't handle)
-3. Hash-based scam reporting aggregation
-4. Signed blocklist distribution
+Endpoints:
+- POST /api/analyze - Full analysis with explainability
+- POST /api/analyze/quick - Rule engine only (fast)
+- GET /api/health - Health check
 """
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List
-import hashlib
+from typing import Optional, List, Dict, Any
 import os
 import sys
 
 # Add backend to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from detector import ScamDetector, DetectionResult
+from detector import ScamDetector
 
 # Initialize FastAPI
 app = FastAPI(
-    title="ScamShield Backend",
-    description="Privacy-first backend for scam detection system",
-    version="1.0.0"
+    title="ScamShield API",
+    description="Rule Engine → DistilBERT → Guardian Detection Pipeline",
+    version="2.0.0"
 )
 
-# CORS for mobile app
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -42,66 +40,85 @@ app.add_middleware(
 # Initialize detector
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(script_dir)
-model_dir = os.path.join(project_dir, 'models')
+model_dir = os.path.join(project_dir, "models")
 detector = ScamDetector(model_dir=model_dir)
 
 
-# --- Request/Response Models ---
+# ============================================================================
+# REQUEST/RESPONSE MODELS
+# ============================================================================
 
 class AnalyzeRequest(BaseModel):
-    """Request for message analysis."""
     text: str
     sender_id: Optional[str] = None
-    modality: Optional[str] = "sms"  # sms, whatsapp, call
 
 
 class AnalyzeResponse(BaseModel):
-    """Response from message analysis."""
-    risk_level: str
+    # Final verdict
+    verdict: str
     confidence: float
-    reason_en: str
-    reason_hi: str
-    signals: dict
-    rules: List[str]
+    
+    # Rule results
+    rule_triggered: bool
+    rule_triggers: List[str]
+    rule_reasons_en: List[str]
+    rule_reasons_hi: List[str]
+    
+    # ML results
+    ml_label: Optional[str]
+    ml_confidence: Optional[float]
+    ml_used: bool
+    
+    # Explainability
+    explanation_en: str
+    explanation_hi: str
     action_en: str
     action_hi: str
+    
+    # Guardian
+    should_escalate: bool
+    escalation_reason: Optional[str]
 
 
-class ReportRequest(BaseModel):
-    """Hash-based scam report (privacy-preserving)."""
-    message_hash: str  # SHA256 of message
-    scam_type: str
-    reporter_region: Optional[str] = None
+class QuickAnalyzeResponse(BaseModel):
+    verdict: str
+    confidence: float
+    rule_triggers: List[str]
+    explanation: str
 
 
-class CallMetadataRequest(BaseModel):
-    """Call risk analysis from metadata only."""
-    caller_number_hash: str  # Hashed for privacy
-    call_duration_seconds: int
-    is_unknown_caller: bool
-    user_reported_otp_request: bool
-    user_reported_payment_request: bool
+class HealthResponse(BaseModel):
+    status: str
+    rule_engine: bool
+    distilbert: bool
+    distilbert_path: Optional[str]
 
 
-# --- Endpoints ---
+# ============================================================================
+# ENDPOINTS
+# ============================================================================
 
-@app.get("/")
-async def root():
-    """Health check."""
-    return {
-        "service": "ScamShield Backend",
-        "status": "healthy",
-        "note": "This backend is for fallback/training only. Primary detection is on-device."
-    }
+@app.get("/api/health", response_model=HealthResponse)
+async def health_check():
+    """Check system health and model availability."""
+    return HealthResponse(
+        status="healthy",
+        rule_engine=True,  # Always available
+        distilbert=detector.distilbert is not None and detector.distilbert.loaded,
+        distilbert_path=detector.distilbert.model_path if detector.distilbert else None
+    )
 
 
 @app.post("/api/analyze", response_model=AnalyzeResponse)
 async def analyze_message(request: AnalyzeRequest):
     """
-    Analyze a message for scam indicators.
+    Full analysis with Rule Engine → DistilBERT → Guardian pipeline.
     
-    NOTE: This endpoint is for FALLBACK only when on-device ML is insufficient.
-    Normal flow should use on-device rule engine + TFLite model.
+    Returns complete explainability including:
+    - Rule triggers
+    - ML label + confidence
+    - Bilingual explanations
+    - Guardian escalation decision
     """
     if not request.text or len(request.text.strip()) == 0:
         raise HTTPException(status_code=400, detail="Empty message text")
@@ -109,126 +126,65 @@ async def analyze_message(request: AnalyzeRequest):
     result = detector.detect(request.text, request.sender_id)
     
     return AnalyzeResponse(
-        risk_level=result.risk_level,
-        confidence=round(result.confidence, 2),
-        reason_en=result.reason_en,
-        reason_hi=result.reason_hi,
-        signals=result.detected_signals,
-        rules=result.triggered_rules,
-        action_en=result.recommended_action,
-        action_hi=result.recommended_action_hi
+        verdict=result.verdict,
+        confidence=result.confidence,
+        rule_triggered=result.rule_triggered,
+        rule_triggers=result.rule_triggers,
+        rule_reasons_en=result.rule_reasons_en,
+        rule_reasons_hi=result.rule_reasons_hi,
+        ml_label=result.ml_label,
+        ml_confidence=result.ml_confidence,
+        ml_used=result.ml_used,
+        explanation_en=result.explanation_en,
+        explanation_hi=result.explanation_hi,
+        action_en=result.action_en,
+        action_hi=result.action_hi,
+        should_escalate=result.should_escalate,
+        escalation_reason=result.escalation_reason
     )
 
 
-@app.post("/api/analyze/call-metadata")
-async def analyze_call_metadata(request: CallMetadataRequest):
+@app.post("/api/analyze/quick", response_model=QuickAnalyzeResponse)
+async def quick_analyze(request: AnalyzeRequest):
     """
-    Analyze call risk from METADATA only (no audio).
-    
-    This respects privacy - no call recording or transcription.
+    Quick analysis using Rule Engine only (no ML).
+    Use for high-throughput or when DistilBERT is unavailable.
     """
-    risk_score = 0
-    reasons = []
+    if not request.text or len(request.text.strip()) == 0:
+        raise HTTPException(status_code=400, detail="Empty message text")
     
-    # Unknown caller
-    if request.is_unknown_caller:
-        risk_score += 20
-        reasons.append("Unknown caller")
+    # Use rule engine directly
+    from rule_engine import RuleEngine
+    engine = RuleEngine()
+    result = engine.analyze(request.text, request.sender_id)
     
-    # Long call (potential scam engagement)
-    if request.call_duration_seconds > 180:  # 3 minutes
-        risk_score += 15
-        reasons.append("Long call duration")
-    
-    # User reported OTP request
-    if request.user_reported_otp_request:
-        risk_score += 40
-        reasons.append("OTP was requested during call")
-    
-    # User reported payment request
-    if request.user_reported_payment_request:
-        risk_score += 40
-        reasons.append("Payment was requested during call")
-    
-    # Determine risk level
-    if risk_score >= 50:
-        risk_level = "HIGH"
-        action = "Consider blocking this number and informing family"
-    elif risk_score >= 25:
-        risk_level = "MEDIUM"
-        action = "Be cautious about any future calls from this number"
-    else:
-        risk_level = "LOW"
-        action = "Call appears normal"
-    
+    return QuickAnalyzeResponse(
+        verdict=result.risk_level.value,
+        confidence=result.confidence,
+        rule_triggers=result.triggered_rules,
+        explanation="; ".join(result.reasons_en) if result.reasons_en else "No issues detected"
+    )
+
+
+@app.get("/")
+async def root():
+    """API info."""
     return {
-        "risk_level": risk_level,
-        "risk_score": risk_score,
-        "reasons": reasons,
-        "action": action
+        "service": "ScamShield Detection API",
+        "version": "2.0.0",
+        "pipeline": "Rule Engine → DistilBERT → Guardian",
+        "endpoints": {
+            "analyze": "/api/analyze",
+            "quick": "/api/analyze/quick",
+            "health": "/api/health"
+        }
     }
 
 
-@app.post("/api/report")
-async def report_scam(request: ReportRequest):
-    """
-    Submit a scam report using hash-based privacy.
-    
-    We store ONLY the hash, never raw message content.
-    """
-    # In production: store to PostgreSQL + Redis
-    # For hackathon: just acknowledge
-    return {
-        "status": "received",
-        "message_hash_prefix": request.message_hash[:8] + "...",
-        "note": "Report stored. No personal data was collected."
-    }
+# ============================================================================
+# RUN
+# ============================================================================
 
-
-@app.get("/api/blocklist")
-async def get_blocklist():
-    """
-    Get signed blocklist of known scam numbers/URLs.
-    
-    Updates are distributed periodically, not real-time.
-    """
-    # Sample blocklist for hackathon demo
-    return {
-        "version": "2026-01-11",
-        "url_patterns": [
-            "verify-now.co",
-            "bank-kycverify.com",
-            "secure-kyc-update.in",
-            "pay-safe.link"
-        ],
-        "number_hashes": [
-            # SHA256 hashes of known scam numbers
-            hashlib.sha256("+91-86854-63467".encode()).hexdigest()[:16],
-            hashlib.sha256("+91-98728-31517".encode()).hexdigest()[:16],
-        ],
-        "signature": "demo_signature_would_be_real_in_production"
-    }
-
-
-@app.get("/api/stats")
-async def get_stats():
-    """Get dataset statistics (for demo purposes)."""
-    return {
-        "total_messages_analyzed": 148,
-        "scams_detected": 120,
-        "legitimate": 28,
-        "scam_types": [
-            "Bank/KYC Fraud",
-            "Digital Arrest",
-            "Lottery/Prize Scam",
-            "Tech Support Scam",
-            "Job Offer Scam",
-            "Family Impersonation"
-        ]
-    }
-
-
-# --- Run server ---
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

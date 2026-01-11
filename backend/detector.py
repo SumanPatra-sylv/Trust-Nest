@@ -1,183 +1,413 @@
 """
-Unified Detection Pipeline - Combines Rule Engine + ML Classifier
-==================================================================
-This is the main detection logic that will be ported to Android.
+Unified Detection Pipeline - Rule Engine → DistilBERT → Guardian
+================================================================
+This is the main detection logic with strict ordering:
 
-Flow:
-1. Rule Engine (deterministic, <10ms) → catches obvious scams
-2. ML Classifier (if rule engine unsure) → probabilistic classification
-3. Combined result with explainability
+1. Rule Engine (ALWAYS runs first, can OVERRIDE ML)
+2. DistilBERT (runs for uncertain cases)
+3. Guardian Escalation (for high-risk)
+
+Output includes:
+- Rule triggers
+- DistilBERT label + confidence
+- Combined verdict with explainability
 """
 
-import sys
 import os
+import sys
+import json
+from dataclasses import dataclass, asdict
+from typing import List, Optional, Dict, Any
+from enum import Enum
+
+# Add backend to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from rule_engine import RuleEngine, RuleResult, RiskLevel
-from feature_extractor import FeatureExtractor
-from classifier import ScamClassifier
-from dataclasses import dataclass
-from typing import List, Optional
-import json
+
+# Try to import DistilBERT
+DISTILBERT_AVAILABLE = False
+try:
+    import torch
+    from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
+    DISTILBERT_AVAILABLE = True
+except ImportError:
+    print("[WARN] Transformers not available. Using rule engine only.")
+
+
+class FinalVerdict(Enum):
+    SAFE = "SAFE"
+    SUSPICIOUS = "SUSPICIOUS"
+    SCAM = "SCAM"
 
 
 @dataclass
-class DetectionResult:
-    """Final detection result combining all signals."""
-    risk_level: str  # SAFE, SUSPICIOUS, SCAM
+class DistilBERTResult:
+    """Result from DistilBERT inference."""
+    label: str  # SAFE or SCAM
     confidence: float
-    reason_en: str
-    reason_hi: str
-    detected_signals: dict
-    triggered_rules: List[str]
-    ml_probability: Optional[float]
-    recommended_action: str
-    recommended_action_hi: str
+    raw_logits: Optional[List[float]] = None
+
+
+@dataclass 
+class DetectionResult:
+    """Final combined detection result with full explainability."""
+    # Final verdict
+    verdict: str  # SAFE, SUSPICIOUS, SCAM
+    confidence: float
+    
+    # Rule Engine results
+    rule_triggered: bool
+    rule_triggers: List[str]
+    rule_reasons_en: List[str]
+    rule_reasons_hi: List[str]
+    rule_signals: Dict[str, bool]
+    
+    # DistilBERT results
+    ml_label: Optional[str]
+    ml_confidence: Optional[float]
+    ml_used: bool
+    
+    # Combined explainability
+    explanation_en: str
+    explanation_hi: str
+    
+    # Recommended action
+    action_en: str
+    action_hi: str
+    
+    # Guardian escalation
+    should_escalate: bool
+    escalation_reason: Optional[str]
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+    
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict(), indent=2, ensure_ascii=False)
+
+
+class DistilBERTClassifier:
+    """DistilBERT classifier for scam detection."""
+    
+    def __init__(self, model_path: str):
+        self.model_path = model_path
+        self.tokenizer = None
+        self.model = None
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.loaded = False
+        
+        self._load_model()
+    
+    def _load_model(self):
+        """Load the trained DistilBERT model."""
+        if not os.path.exists(self.model_path):
+            print(f"[WARN] Model not found at {self.model_path}")
+            return
+        
+        try:
+            self.tokenizer = DistilBertTokenizer.from_pretrained(self.model_path)
+            self.model = DistilBertForSequenceClassification.from_pretrained(self.model_path)
+            self.model.to(self.device)
+            self.model.eval()
+            self.loaded = True
+            print(f"[INFO] DistilBERT loaded from {self.model_path}")
+        except Exception as e:
+            print(f"[ERROR] Failed to load DistilBERT: {e}")
+    
+    def predict(self, text: str) -> DistilBERTResult:
+        """Run inference on a single text."""
+        if not self.loaded:
+            return DistilBERTResult(label="UNKNOWN", confidence=0.0)
+        
+        # Tokenize
+        inputs = self.tokenizer(
+            text,
+            return_tensors="pt",
+            truncation=True,
+            max_length=256,
+            padding=True
+        )
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        
+        # Inference
+        with torch.no_grad():
+            outputs = self.model(**inputs)
+            logits = outputs.logits
+            probs = torch.softmax(logits, dim=-1)
+            
+            pred_class = torch.argmax(probs, dim=-1).item()
+            confidence = probs[0][pred_class].item()
+        
+        # Map to label (0=SAFE, 1=SCAM)
+        label = "SCAM" if pred_class == 1 else "SAFE"
+        
+        return DistilBERTResult(
+            label=label,
+            confidence=confidence,
+            raw_logits=logits[0].tolist()
+        )
 
 
 class ScamDetector:
     """
-    Unified scam detector combining Rule Engine + ML.
-    This is the main API that will be exposed to Android.
+    Unified Scam Detector with strict ordering:
+    
+    1. Rule Engine (ALWAYS first, can OVERRIDE)
+    2. DistilBERT (for uncertain cases)
+    3. Guardian Escalation (for high-risk)
     """
     
+    # Thresholds for decision making
+    RULE_SCAM_THRESHOLD = 60      # Rule score >= 60 = definite SCAM
+    RULE_SUSPICIOUS_THRESHOLD = 30 # Rule score >= 30 = SUSPICIOUS
+    ML_HIGH_CONFIDENCE = 0.8      # ML confidence >= 0.8 = trust it
+    ML_LOW_CONFIDENCE = 0.6       # ML confidence < 0.6 = uncertain
+    ESCALATION_THRESHOLD = 0.7    # Escalate to guardian if >= 0.7
+    
     def __init__(self, model_dir: Optional[str] = None):
+        # Always initialize Rule Engine
         self.rule_engine = RuleEngine()
-        self.feature_extractor = FeatureExtractor()
-        self.classifier = None
         
-        if model_dir and os.path.exists(model_dir):
-            self.classifier = ScamClassifier()
-            try:
-                self.classifier.load(model_dir)
-                print("✓ ML classifier loaded")
-            except Exception as e:
-                print(f"⚠ Could not load ML classifier: {e}")
-                self.classifier = None
+        # Initialize DistilBERT if available
+        self.distilbert = None
+        if model_dir and DISTILBERT_AVAILABLE:
+            distilbert_path = os.path.join(model_dir, "distilbert")
+            if os.path.exists(distilbert_path):
+                self.distilbert = DistilBERTClassifier(distilbert_path)
     
     def detect(self, text: str, sender_id: Optional[str] = None) -> DetectionResult:
         """
-        Main detection method.
+        Main detection method with strict ordering:
         
-        Step 1: Run Rule Engine (fast, deterministic)
-        Step 2: If uncertain, run ML classifier  
-        Step 3: Combine results and generate explanation
+        STEP 1: Rule Engine (ALWAYS runs, can OVERRIDE)
+        STEP 2: DistilBERT (if rules are uncertain)
+        STEP 3: Combine results
+        STEP 4: Determine guardian escalation
         """
-        # Step 1: Rule Engine
+        
+        # =====================================================
+        # STEP 1: RULE ENGINE (ALWAYS FIRST)
+        # =====================================================
         rule_result = self.rule_engine.analyze(text, sender_id)
         
-        # Extract features for ML
-        features = self.feature_extractor.extract(text)
+        rule_triggered = len(rule_result.triggered_rules) > 0
+        rule_score = self._calculate_rule_score(rule_result)
         
-        # Step 2: ML classifier (if rule engine is uncertain)
-        ml_prob = None
-        if self.classifier and rule_result.risk_level == RiskLevel.SUSPICIOUS:
-            try:
-                ml_result = self.classifier.predict(
-                    text, 
-                    structured_features=features.to_feature_vector()[:7]  # First 7 flags
-                )
-                ml_prob = ml_result['scam_probability']
-                
-                # Adjust confidence based on ML
-                if ml_prob > 0.7:
-                    rule_result.risk_level = RiskLevel.SCAM
-                    rule_result.confidence = max(rule_result.confidence, ml_prob)
-                elif ml_prob < 0.3:
-                    rule_result.risk_level = RiskLevel.SAFE
-                    rule_result.confidence = 1 - ml_prob
-            except Exception as e:
-                print(f"ML prediction error: {e}")
-        
-        # Step 3: Generate recommendation
-        if rule_result.risk_level == RiskLevel.SCAM:
-            action_en = "⚠️ Block sender and report this scam"
-            action_hi = "⚠️ भेजने वाले को ब्लॉक करें और रिपोर्ट करें"
-        elif rule_result.risk_level == RiskLevel.SUSPICIOUS:
-            action_en = "❓ Ask a family member before responding"
-            action_hi = "❓ जवाब देने से पहले परिवार से पूछें"
+        # Check if rules definitively determine outcome
+        rule_override = False
+        if rule_score >= self.RULE_SCAM_THRESHOLD:
+            # Rule Engine says SCAM - this OVERRIDES ML
+            rule_override = True
+            final_verdict = FinalVerdict.SCAM
+            final_confidence = min(0.95, 0.6 + (rule_score - 60) * 0.01)
+        elif rule_score < 10 and not rule_triggered:
+            # Very clean - no need for ML
+            rule_override = True
+            final_verdict = FinalVerdict.SAFE
+            final_confidence = 0.95
         else:
-            action_en = "✅ Message appears safe"
-            action_hi = "✅ संदेश सुरक्षित लगता है"
+            # Uncertain - need ML
+            rule_override = False
+            final_verdict = None
+            final_confidence = None
         
-        # Combine reasons
-        reason_en = "; ".join(rule_result.reasons_en) if rule_result.reasons_en else "No issues detected"
-        reason_hi = "; ".join(rule_result.reasons_hi) if rule_result.reasons_hi else "कोई समस्या नहीं मिली"
+        # =====================================================
+        # STEP 2: DISTILBERT (IF RULES ARE UNCERTAIN)
+        # =====================================================
+        ml_result = None
+        ml_used = False
         
+        if not rule_override and self.distilbert and self.distilbert.loaded:
+            ml_result = self.distilbert.predict(text)
+            ml_used = True
+            
+            # Combine rule + ML
+            if ml_result.label == "SCAM" and ml_result.confidence >= self.ML_HIGH_CONFIDENCE:
+                final_verdict = FinalVerdict.SCAM
+                final_confidence = ml_result.confidence
+            elif ml_result.label == "SAFE" and ml_result.confidence >= self.ML_HIGH_CONFIDENCE:
+                # But rules found something suspicious
+                if rule_score >= self.RULE_SUSPICIOUS_THRESHOLD:
+                    final_verdict = FinalVerdict.SUSPICIOUS
+                    final_confidence = 0.5 + (rule_score - 30) * 0.01
+                else:
+                    final_verdict = FinalVerdict.SAFE
+                    final_confidence = ml_result.confidence
+            else:
+                # ML is uncertain - use rules as tiebreaker
+                if rule_score >= self.RULE_SUSPICIOUS_THRESHOLD:
+                    final_verdict = FinalVerdict.SUSPICIOUS
+                    final_confidence = max(0.5, ml_result.confidence)
+                else:
+                    final_verdict = FinalVerdict.SAFE
+                    final_confidence = ml_result.confidence
+        
+        # Fallback if ML not available
+        if final_verdict is None:
+            if rule_score >= self.RULE_SUSPICIOUS_THRESHOLD:
+                final_verdict = FinalVerdict.SUSPICIOUS
+                final_confidence = 0.5 + (rule_score - 30) * 0.01
+            else:
+                final_verdict = FinalVerdict.SAFE
+                final_confidence = 0.7
+        
+        # =====================================================
+        # STEP 3: GENERATE EXPLAINABILITY
+        # =====================================================
+        explanation_en, explanation_hi = self._generate_explanation(
+            rule_result, ml_result, final_verdict, rule_override
+        )
+        
+        action_en, action_hi = self._generate_action(final_verdict)
+        
+        # =====================================================
+        # STEP 4: GUARDIAN ESCALATION
+        # =====================================================
+        should_escalate = (
+            final_verdict == FinalVerdict.SCAM or
+            (final_verdict == FinalVerdict.SUSPICIOUS and final_confidence >= self.ESCALATION_THRESHOLD) or
+            "DIGITAL_ARREST" in rule_result.triggered_rules or
+            "FAMILY_IMPERSONATION" in rule_result.triggered_rules
+        )
+        
+        escalation_reason = None
+        if should_escalate:
+            if "DIGITAL_ARREST" in rule_result.triggered_rules:
+                escalation_reason = "Digital Arrest scam detected"
+            elif "FAMILY_IMPERSONATION" in rule_result.triggered_rules:
+                escalation_reason = "Family impersonation detected"
+            elif final_verdict == FinalVerdict.SCAM:
+                escalation_reason = f"High-risk scam ({final_confidence:.0%} confidence)"
+            else:
+                escalation_reason = "Suspicious activity requires review"
+        
+        # =====================================================
+        # BUILD FINAL RESULT
+        # =====================================================
         return DetectionResult(
-            risk_level=rule_result.risk_level.value,
-            confidence=rule_result.confidence,
-            reason_en=reason_en,
-            reason_hi=reason_hi,
-            detected_signals=rule_result.detected_signals,
-            triggered_rules=rule_result.triggered_rules,
-            ml_probability=ml_prob,
-            recommended_action=action_en,
-            recommended_action_hi=action_hi
+            verdict=final_verdict.value,
+            confidence=final_confidence,
+            rule_triggered=rule_triggered,
+            rule_triggers=rule_result.triggered_rules,
+            rule_reasons_en=rule_result.reasons_en,
+            rule_reasons_hi=rule_result.reasons_hi,
+            rule_signals=rule_result.detected_signals,
+            ml_label=ml_result.label if ml_result else None,
+            ml_confidence=ml_result.confidence if ml_result else None,
+            ml_used=ml_used,
+            explanation_en=explanation_en,
+            explanation_hi=explanation_hi,
+            action_en=action_en,
+            action_hi=action_hi,
+            should_escalate=should_escalate,
+            escalation_reason=escalation_reason
         )
     
-    def to_json(self, result: DetectionResult) -> str:
-        """Convert result to JSON for API response."""
-        return json.dumps({
-            'risk_level': result.risk_level,
-            'confidence': round(result.confidence, 2),
-            'reason': {
-                'en': result.reason_en,
-                'hi': result.reason_hi
-            },
-            'signals': result.detected_signals,
-            'rules': result.triggered_rules,
-            'ml_probability': round(result.ml_probability, 2) if result.ml_probability else None,
-            'action': {
-                'en': result.recommended_action,
-                'hi': result.recommended_action_hi
-            }
-        }, indent=2, ensure_ascii=False)
+    def _calculate_rule_score(self, result: RuleResult) -> int:
+        """Calculate a numeric score from rule triggers."""
+        score = 0
+        weights = {
+            "DIGITAL_ARREST": 50,
+            "FAMILY_IMPERSONATION": 45,
+            "PHISHING_DOMAIN": 40,
+            "OTP_REQUEST": 35,
+            "THREAT": 30,
+            "AUTHORITY_IMPERSONATION": 25,
+            "URL_SHORTENER": 20,
+            "UPI_PRESENT": 15,
+            "URGENCY": 15,
+            "PHONE_NUMBER": 10
+        }
+        for rule in result.triggered_rules:
+            score += weights.get(rule, 10)
+        return score
+    
+    def _generate_explanation(
+        self, 
+        rule_result: RuleResult, 
+        ml_result: Optional[DistilBERTResult],
+        verdict: FinalVerdict,
+        rule_override: bool
+    ) -> tuple:
+        """Generate bilingual explanation."""
+        parts_en = []
+        parts_hi = []
+        
+        # Rule triggers
+        if rule_result.reasons_en:
+            parts_en.extend(rule_result.reasons_en)
+            parts_hi.extend(rule_result.reasons_hi)
+        
+        # ML contribution
+        if ml_result and not rule_override:
+            ml_desc = f"AI analysis: {ml_result.label} ({ml_result.confidence:.0%})"
+            parts_en.append(ml_desc)
+            parts_hi.append(f"AI विश्लेषण: {ml_result.label} ({ml_result.confidence:.0%})")
+        
+        if not parts_en:
+            parts_en.append("No issues detected")
+            parts_hi.append("कोई समस्या नहीं मिली")
+        
+        return "; ".join(parts_en), "; ".join(parts_hi)
+    
+    def _generate_action(self, verdict: FinalVerdict) -> tuple:
+        """Generate recommended action."""
+        if verdict == FinalVerdict.SCAM:
+            return (
+                "⚠️ Block sender and report this scam",
+                "⚠️ भेजने वाले को ब्लॉक करें और रिपोर्ट करें"
+            )
+        elif verdict == FinalVerdict.SUSPICIOUS:
+            return (
+                "❓ Ask a family member before responding",
+                "❓ जवाब देने से पहले परिवार से पूछें"
+            )
+        else:
+            return (
+                "✅ Message appears safe",
+                "✅ संदेश सुरक्षित लगता है"
+            )
 
 
-# --- Test ---
+# ============================================================================
+# TEST
+# ============================================================================
+
 if __name__ == "__main__":
-    # Find model directory
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_dir = os.path.dirname(script_dir)
-    model_dir = os.path.join(project_dir, 'models')
+    model_dir = os.path.join(project_dir, "models")
     
-    # Initialize detector
     detector = ScamDetector(model_dir=model_dir)
     
-    # Test messages
     test_cases = [
-        # Safe messages
-        "Hi, I'll reach by 7:00 PM. See you soon.",
-        "BESCOM: Bill of ₹5000 due on 15-Jun. Pay via official app.",
+        # Safe
+        "Hi, I'll reach by 7 PM. See you soon.",
+        "Your Amazon order has been shipped. Track at amazon.in",
         
         # Suspicious
-        "Dear customer, your card will be blocked today. Verify at https://rebrand.ly/CqmeGMJ",
-        "Pre-approved loan ₹9900. Activate by paying ₹199 at https://tinyurl.com/xyz",
+        "Pre-approved loan of Rs. 50000. Limited offer.",
         
-        # Scam
-        "You are under 'digital arrest'. Stay on line and transfer ₹1500.",
-        "OLX: Buyer sent payment. To receive ₹50000, share OTP.",
-        "Court notice: Settlement required today. Call +91-86854-63467 abhi.",
-        "Hi Mom, new number. Emergency. Send ₹9900 to UPI xyz@oksbi. Don't call.",
+        # Scam (should trigger rules)
+        "Share OTP to verify your payment of Rs. 5000",
+        "Digital arrest. Stay on video call. Transfer money now.",
+        "Court notice: Settlement required today. Call +91-86854-63467",
+        "Hi Mom, new number. Emergency. Send Rs. 9900 to xyz@oksbi",
     ]
     
     print("=" * 70)
-    print("UNIFIED SCAM DETECTOR TEST")
+    print("UNIFIED DETECTOR TEST (Rule Engine → DistilBERT → Guardian)")
     print("=" * 70)
     
-    for msg in test_cases:
-        result = detector.detect(msg)
+    for text in test_cases:
+        result = detector.detect(text)
         
-        # Color code by risk
-        if result.risk_level == "SCAM":
-            icon = "🚨"
-        elif result.risk_level == "SUSPICIOUS":
-            icon = "⚠️"
-        else:
-            icon = "✅"
+        icon = {"SCAM": "🚨", "SUSPICIOUS": "⚠️", "SAFE": "✅"}[result.verdict]
         
-        print(f"\n{icon} {result.risk_level} ({result.confidence:.0%})")
-        print(f"   Message: {msg[:55]}...")
-        print(f"   Reason: {result.reason_en}")
-        print(f"   Action: {result.recommended_action}")
+        print(f"\n{icon} {result.verdict} ({result.confidence:.0%})")
+        print(f"   Text: {text[:50]}...")
+        print(f"   Rules: {', '.join(result.rule_triggers) if result.rule_triggers else 'None'}")
+        print(f"   ML: {result.ml_label} ({result.ml_confidence:.0%})" if result.ml_used else "   ML: Not used (rule override)")
+        print(f"   Explanation: {result.explanation_en}")
+        print(f"   Escalate: {result.should_escalate} - {result.escalation_reason or 'N/A'}")
