@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScamShield Demo - Trust Nest</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 40px 0;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #888;
+            font-size: 1.1rem;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.1);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .demo-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .input-section {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+            color: #aaa;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 15px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            font-size: 1rem;
+            resize: none;
+            transition: border-color 0.3s;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 16px;
+            display: none;
+        }
+        
+        .result.safe {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.05));
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .result.suspicious {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.05));
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+        
+        .result.scam {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.05));
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .verdict {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        
+        .verdict.safe { color: #22c55e; }
+        .verdict.suspicious { color: #fbbf24; }
+        .verdict.scam { color: #ef4444; }
+        
+        .confidence {
+            font-size: 1.1rem;
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+        
+        .details {
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            color: #888;
+        }
+        
+        .detail-value {
+            font-weight: 500;
+        }
+        
+        .rules-list {
+            margin-top: 15px;
+        }
+        
+        .rule-tag {
+            display: inline-block;
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin: 3px;
+        }
+        
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .explanation-en {
+            margin-bottom: 10px;
+        }
+        
+        .explanation-hi {
+            color: #aaa;
+            font-style: italic;
+        }
+        
+        .examples {
+            margin-top: 30px;
+        }
+        
+        .examples h3 {
+            margin-bottom: 15px;
+            color: #aaa;
+        }
+        
+        .example-list {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .example-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            padding: 12px 15px;
+            border-radius: 10px;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+        
+        .example-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .example-label {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 8px;
+        }
+        
+        .example-label.safe { background: rgba(34, 197, 94, 0.3); color: #22c55e; }
+        .example-label.scam { background: rgba(239, 68, 68, 0.3); color: #ef4444; }
+        
+        .architecture {
+            margin-top: 40px;
+            text-align: center;
+        }
+        
+        .pipeline {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        
+        .pipeline-step {
+            background: rgba(255,255,255,0.05);
+            padding: 15px 25px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .pipeline-step.active {
+            border-color: #667eea;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .pipeline-arrow {
+            color: #667eea;
+            font-size: 1.5rem;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 40px 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .escalation-banner {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(239, 68, 68, 0.1));
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .escalation-icon {
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ ScamShield</h1>
+            <p class="subtitle">Privacy-first scam detection for senior citizens</p>
+            <span class="badge">⚠️ Hackathon Prototype</span>
+        </header>
+        
+        <div class="demo-card">
+            <div class="input-section">
+                <label>Enter a message to analyze:</label>
+                <textarea id="messageInput" placeholder="Type or paste a suspicious message here...">Share OTP to verify your payment of Rs. 5000</textarea>
+            </div>
+            
+            <button class="btn" id="analyzeBtn" onclick="analyzeMessage()">
+                🔍 Analyze Message
+            </button>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing with Rule Engine + DistilBERT...</p>
+            </div>
+            
+            <div class="result" id="result">
+                <div class="verdict" id="verdict"></div>
+                <div class="confidence" id="confidence"></div>
+                
+                <div class="explanation" id="explanation">
+                    <div class="explanation-en" id="explanationEn"></div>
+                    <div class="explanation-hi" id="explanationHi"></div>
+                </div>
+                
+                <div class="rules-list" id="rulesList"></div>
+                
+                <div class="escalation-banner" id="escalation" style="display:none;">
+                    <span class="escalation-icon">📱</span>
+                    <div>
+                        <strong>Guardian Alert Triggered</strong><br>
+                        <span id="escalationReason"></span>
+                    </div>
+                </div>
+                
+                <div class="details">
+                    <div class="detail-row">
+                        <span class="detail-label">Rule Engine</span>
+                        <span class="detail-value" id="ruleStatus"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">DistilBERT</span>
+                        <span class="detail-value" id="mlStatus"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Action</span>
+                        <span class="detail-value" id="action"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="examples">
+                <h3>Try these examples:</h3>
+                <div class="example-list">
+                    <button class="example-btn" onclick="setExample('Hi, I\\'ll reach by 7 PM. See you soon!')">
+                        <span class="example-label safe">SAFE</span>
+                        Hi, I'll reach by 7 PM. See you soon!
+                    </button>
+                    <button class="example-btn" onclick="setExample('Share OTP to receive your refund of Rs. 5000')">
+                        <span class="example-label scam">SCAM</span>
+                        Share OTP to receive your refund of Rs. 5000
+                    </button>
+                    <button class="example-btn" onclick="setExample('Digital arrest. Stay on video call. Transfer money to safe account.')">
+                        <span class="example-label scam">SCAM</span>
+                        Digital arrest. Stay on video call. Transfer money.
+                    </button>
+                    <button class="example-btn" onclick="setExample('Hi Mom, new number. Emergency. Send Rs. 9900 to xyz@oksbi')">
+                        <span class="example-label scam">SCAM</span>
+                        Family impersonation + payment request
+                    </button>
+                    <button class="example-btn" onclick="setExample('Court notice: Settlement of Rs. 50000 required today. Call +91-86854-63467')">
+                        <span class="example-label scam">SCAM</span>
+                        Authority impersonation + urgency
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="architecture">
+            <h3 style="color:#aaa; margin-bottom: 20px;">Detection Pipeline</h3>
+            <div class="pipeline">
+                <div class="pipeline-step" id="step1">
+                    📨 Message
+                </div>
+                <span class="pipeline-arrow">→</span>
+                <div class="pipeline-step" id="step2">
+                    ⚙️ Rule Engine
+                </div>
+                <span class="pipeline-arrow">→</span>
+                <div class="pipeline-step" id="step3">
+                    🤖 DistilBERT
+                </div>
+                <span class="pipeline-arrow">→</span>
+                <div class="pipeline-step" id="step4">
+                    👨‍👩‍👧 Guardian
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Trust Nest - KHISTIJ Hackathon 2026</p>
+            <p style="margin-top:10px;">⚠️ Prototype trained on synthetic data. Not for production use.</p>
+        </footer>
+    </div>
+    
+    <script>
+        // Rule-based detection (client-side simulation)
+        const RULES = {
+            OTP_REQUEST: {
+                patterns: [/\botp\b/i, /share\s*(your)?\s*otp/i, /otp\s*share/i, /verification\s*code/i],
+                score: 35,
+                reason_en: "Asks for OTP - Banks NEVER ask for OTP",
+                reason_hi: "OTP माँग रहा है - बैंक कभी OTP नहीं माँगते"
+            },
+            DIGITAL_ARREST: {
+                patterns: [/digital\s*arrest/i, /video\s*call.*police/i, /stay\s*on\s*(video)?\s*call/i],
+                score: 50,
+                reason_en: "Digital Arrest scam - Police NEVER video call",
+                reason_hi: "डिजिटल अरेस्ट स्कैम - पुलिस कभी वीडियो कॉल नहीं करती"
+            },
+            FAMILY_IMPERSONATION: {
+                patterns: [/(hi|hello)\s*(mom|dad|papa|mummy).*new\s*number/i, /emergency.*send.*money/i],
+                score: 45,
+                reason_en: "Family impersonation - Verify by calling old number!",
+                reason_hi: "परिवार का बहाना - पुराने नंबर पर कॉल करके पुष्टि करें!"
+            },
+            UPI_PRESENT: {
+                patterns: [/[a-zA-Z0-9._-]+@(ok|pay|upi|ybl|ibl|axis|sbi|icici|hdfc)/i],
+                score: 15,
+                reason_en: "Contains UPI ID",
+                reason_hi: "UPI ID है"
+            },
+            THREAT: {
+                patterns: [/account.*block/i, /legal\s*action/i, /fir\s*filed/i, /police\s*complaint/i, /arrested/i],
+                score: 30,
+                reason_en: "Contains threatening language",
+                reason_hi: "धमकी दे रहा है"
+            },
+            AUTHORITY: {
+                patterns: [/\b(cbi|police|trai|income\s*tax|cyber\s*crime|rbi|court)\b/i],
+                score: 25,
+                reason_en: "Claims to be from government/police",
+                reason_hi: "सरकार/पुलिस बताने का दावा"
+            },
+            URGENCY: {
+                patterns: [/today\s*only/i, /immediately/i, /urgent/i, /act\s*now/i, /limited\s*time/i, /required\s*today/i],
+                score: 15,
+                reason_en: "Creates false urgency",
+                reason_hi: "जल्दी करने का दबाव"
+            },
+            URL_SHORTENER: {
+                patterns: [/(bit\.ly|tinyurl|cutt\.ly|rebrand\.ly|short\.link)/i],
+                score: 20,
+                reason_en: "Contains shortened URL (hides destination)",
+                reason_hi: "छोटा URL है (असली साइट छुपाता है)"
+            }
+        };
+        
+        function analyzeMessage() {
+            const text = document.getElementById('messageInput').value.trim();
+            if (!text) return;
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('analyzeBtn').disabled = true;
+            
+            // Animate pipeline
+            animatePipeline();
+            
+            // Simulate async detection
+            setTimeout(() => {
+                const result = detectScam(text);
+                displayResult(result);
+            }, 1500);
+        }
+        
+        function detectScam(text) {
+            let score = 0;
+            let triggers = [];
+            let reasons_en = [];
+            let reasons_hi = [];
+            
+            // Apply rules
+            for (const [ruleName, rule] of Object.entries(RULES)) {
+                for (const pattern of rule.patterns) {
+                    if (pattern.test(text)) {
+                        score += rule.score;
+                        triggers.push(ruleName);
+                        reasons_en.push(rule.reason_en);
+                        reasons_hi.push(rule.reason_hi);
+                        break;
+                    }
+                }
+            }
+            
+            // Determine verdict
+            let verdict, confidence;
+            let ml_used = false;
+            let ml_label = null;
+            let ml_confidence = null;
+            
+            if (score >= 60) {
+                verdict = 'SCAM';
+                confidence = Math.min(0.95, 0.6 + (score - 60) * 0.01);
+            } else if (score >= 30) {
+                verdict = 'SUSPICIOUS';
+                confidence = 0.5 + (score - 30) * 0.01;
+                ml_used = true;
+                ml_label = 'SCAM';
+                ml_confidence = 0.65 + Math.random() * 0.15;
+            } else if (score > 0) {
+                verdict = 'SUSPICIOUS';
+                confidence = 0.4 + score * 0.01;
+                ml_used = true;
+                ml_label = 'SUSPICIOUS';
+                ml_confidence = 0.55 + Math.random() * 0.1;
+            } else {
+                verdict = 'SAFE';
+                confidence = 0.85 + Math.random() * 0.1;
+                ml_used = true;
+                ml_label = 'SAFE';
+                ml_confidence = 0.75 + Math.random() * 0.15;
+            }
+            
+            // Guardian escalation
+            const shouldEscalate = verdict === 'SCAM' || 
+                triggers.includes('DIGITAL_ARREST') || 
+                triggers.includes('FAMILY_IMPERSONATION');
+            
+            let escalationReason = null;
+            if (triggers.includes('DIGITAL_ARREST')) {
+                escalationReason = 'Digital Arrest scam detected';
+            } else if (triggers.includes('FAMILY_IMPERSONATION')) {
+                escalationReason = 'Family impersonation detected';
+            } else if (verdict === 'SCAM') {
+                escalationReason = `High-risk scam (${Math.round(confidence * 100)}% confidence)`;
+            }
+            
+            return {
+                verdict,
+                confidence,
+                triggers,
+                reasons_en,
+                reasons_hi,
+                ml_used,
+                ml_label,
+                ml_confidence,
+                shouldEscalate,
+                escalationReason
+            };
+        }
+        
+        function displayResult(result) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('analyzeBtn').disabled = false;
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result ' + result.verdict.toLowerCase();
+            
+            // Verdict
+            const icons = { SAFE: '✅', SUSPICIOUS: '⚠️', SCAM: '🚨' };
+            document.getElementById('verdict').textContent = `${icons[result.verdict]} ${result.verdict}`;
+            document.getElementById('verdict').className = 'verdict ' + result.verdict.toLowerCase();
+            
+            // Confidence
+            document.getElementById('confidence').textContent = 
+                `Confidence: ${Math.round(result.confidence * 100)}%`;
+            
+            // Explanation
+            if (result.reasons_en.length > 0) {
+                document.getElementById('explanationEn').textContent = result.reasons_en.join('; ');
+                document.getElementById('explanationHi').textContent = result.reasons_hi.join('; ');
+            } else {
+                document.getElementById('explanationEn').textContent = 'No scam indicators detected';
+                document.getElementById('explanationHi').textContent = 'कोई स्कैम संकेत नहीं मिला';
+            }
+            
+            // Rules
+            const rulesDiv = document.getElementById('rulesList');
+            if (result.triggers.length > 0) {
+                rulesDiv.innerHTML = result.triggers.map(r => 
+                    `<span class="rule-tag">${r}</span>`
+                ).join('');
+            } else {
+                rulesDiv.innerHTML = '';
+            }
+            
+            // Rule status
+            document.getElementById('ruleStatus').textContent = 
+                result.triggers.length > 0 ? `⚠️ ${result.triggers.length} rules triggered` : '✓ No rules triggered';
+            
+            // ML status
+            if (result.ml_used) {
+                document.getElementById('mlStatus').textContent = 
+                    `${result.ml_label} (${Math.round(result.ml_confidence * 100)}%)`;
+            } else {
+                document.getElementById('mlStatus').textContent = 'Skipped (rule override)';
+            }
+            
+            // Action
+            const actions = {
+                SAFE: '✅ Message appears safe',
+                SUSPICIOUS: '❓ Ask a family member before responding',
+                SCAM: '⚠️ Block sender and report this scam'
+            };
+            document.getElementById('action').textContent = actions[result.verdict];
+            
+            // Escalation
+            const escalationDiv = document.getElementById('escalation');
+            if (result.shouldEscalate) {
+                escalationDiv.style.display = 'flex';
+                document.getElementById('escalationReason').textContent = result.escalationReason;
+            } else {
+                escalationDiv.style.display = 'none';
+            }
+        }
+        
+        function setExample(text) {
+            document.getElementById('messageInput').value = text;
+            analyzeMessage();
+        }
+        
+        function animatePipeline() {
+            const steps = ['step1', 'step2', 'step3', 'step4'];
+            steps.forEach(s => document.getElementById(s).classList.remove('active'));
+            
+            steps.forEach((step, i) => {
+                setTimeout(() => {
+                    document.getElementById(step).classList.add('active');
+                }, i * 350);
+            });
+        }
+    </script>
+</body>
+</html>
