@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trust Nest - Senior Protection Simulator</title>
+    <title>Trust Nest - Senior Protection Simulator (LIVE)</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -48,22 +48,70 @@
             font-size: 0.95rem;
         }
 
+        .live-badge {
+            display: inline-block;
+            background: #22c55e;
+            color: #000;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .backend-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #666;
+        }
+
+        .status-dot.connected {
+            background: #22c55e;
+        }
+
+        .status-dot.disconnected {
+            background: #ef4444;
+        }
+
         .layout {
             display: grid;
-            grid-template-columns: 300px 1fr 320px;
+            grid-template-columns: 340px 1fr 340px;
             gap: 20px;
             min-height: 600px;
         }
 
-        /* Scenarios Panel */
-        .scenarios {
+        /* Left Panel - Scenarios */
+        .panel {
             background: rgba(255, 255, 255, 0.03);
             border-radius: 16px;
             padding: 20px;
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        .scenarios h2 {
+        .panel h2 {
             font-size: 0.85rem;
             color: #888;
             text-transform: uppercase;
@@ -110,13 +158,65 @@
             margin-top: 4px;
         }
 
-        /* Phone Simulator */
+        /* Custom Input */
+        .custom-input {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .custom-input textarea {
+            width: 100%;
+            height: 80px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-size: 0.9rem;
+            resize: none;
+            margin-bottom: 10px;
+        }
+
+        .custom-input textarea:focus {
+            outline: none;
+            border-color: #8b5cf6;
+        }
+
+        .analyze-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #8b5cf6, #6366f1);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Center - Phone */
+        .phone-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
         .phone {
             background: linear-gradient(180deg, #1a1a24 0%, #12121a 100%);
             border-radius: 40px;
             padding: 15px;
+            width: 100%;
             max-width: 380px;
-            margin: 0 auto;
             border: 3px solid #2a2a35;
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
         }
@@ -132,15 +232,15 @@
         .phone-screen {
             background: #0f0f14;
             border-radius: 25px;
-            min-height: 500px;
+            min-height: 480px;
             overflow: hidden;
+            position: relative;
         }
 
         .phone-header {
             padding: 15px 20px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
             font-size: 0.85rem;
             color: #888;
         }
@@ -149,74 +249,8 @@
             padding: 20px;
         }
 
-        /* Incoming Call UI */
-        .incoming-call {
-            text-align: center;
-            padding: 40px 20px;
-        }
-
-        .caller-avatar {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            margin: 0 auto 20px;
-        }
-
-        .caller-name {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .caller-number {
-            color: #666;
-            margin-bottom: 20px;
-        }
-
-        .call-status {
-            font-size: 0.9rem;
-            color: #22c55e;
-            margin-bottom: 30px;
-        }
-
-        .call-duration {
-            font-size: 2rem;
-            font-weight: 300;
-            color: #fff;
-            margin: 20px 0;
-        }
-
-        .call-actions {
-            display: flex;
-            justify-content: center;
-            gap: 40px;
-            margin-top: 30px;
-        }
-
-        .call-btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-        }
-
-        .call-btn.decline {
-            background: #ef4444;
-        }
-
-        .call-btn.accept {
-            background: #22c55e;
-        }
-
-        /* SMS UI */
-        .sms-notification {
+        /* Message UI */
+        .message-card {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 16px;
             padding: 16px;
@@ -224,24 +258,25 @@
             border-left: 4px solid #3b82f6;
         }
 
-        .sms-header {
+        .message-header {
             display: flex;
             justify-content: space-between;
             margin-bottom: 10px;
         }
 
-        .sms-sender {
+        .message-sender {
             font-weight: 600;
         }
 
-        .sms-time {
+        .message-time {
             color: #666;
             font-size: 0.8rem;
         }
 
-        .sms-body {
+        .message-body {
             color: #ccc;
             line-height: 1.5;
+            font-size: 0.95rem;
         }
 
         /* Warning Overlay */
@@ -267,9 +302,9 @@
         }
 
         .warning-title {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: 700;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
 
         .warning-title.scam {
@@ -280,29 +315,21 @@
             color: #fbbf24;
         }
 
-        .warning-title.safe {
-            color: #22c55e;
-        }
-
         .warning-reason {
             color: #aaa;
             margin-bottom: 25px;
             line-height: 1.6;
         }
 
-        .warning-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
         .warning-btn {
-            padding: 14px 24px;
+            display: block;
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 10px;
             border-radius: 10px;
             border: none;
             font-weight: 600;
             cursor: pointer;
-            font-size: 0.95rem;
         }
 
         .warning-btn.primary {
@@ -315,29 +342,18 @@
             color: #fff;
         }
 
-        /* Analysis Panel */
-        .analysis {
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 16px;
-            padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+        .hidden {
+            display: none !important;
         }
 
-        .analysis h2 {
-            font-size: 0.85rem;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 20px;
-        }
-
-        .analysis-section {
+        /* Right Panel - Analysis */
+        .section {
             margin-bottom: 20px;
             padding-bottom: 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        .analysis-section:last-child {
+        .section:last-child {
             border-bottom: none;
         }
 
@@ -348,7 +364,7 @@
             margin-bottom: 10px;
         }
 
-        .rule-trigger {
+        .rule-tag {
             display: inline-block;
             background: rgba(239, 68, 68, 0.2);
             color: #ef4444;
@@ -358,36 +374,29 @@
             margin: 3px;
         }
 
-        .ml-result {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
+        .ml-box {
             background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
             border-radius: 8px;
         }
 
-        .ml-label {
-            font-weight: 500;
-        }
-
-        .ml-confidence {
-            color: #888;
+        .ml-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
         }
 
         .confidence-bar {
             height: 6px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 3px;
-            margin-top: 10px;
             overflow: hidden;
         }
 
         .confidence-fill {
             height: 100%;
-            background: linear-gradient(90deg, #22c55e, #ef4444);
             border-radius: 3px;
-            transition: width 0.5s ease;
+            transition: width 0.5s;
         }
 
         .decision-box {
@@ -414,7 +423,6 @@
         .decision-verdict {
             font-size: 1.2rem;
             font-weight: 700;
-            margin-bottom: 5px;
         }
 
         .decision-verdict.scam {
@@ -429,7 +437,7 @@
             color: #22c55e;
         }
 
-        .explanation {
+        .explanation-box {
             background: rgba(255, 255, 255, 0.05);
             padding: 12px;
             border-radius: 8px;
@@ -438,7 +446,6 @@
 
         .explanation-en {
             margin-bottom: 8px;
-            color: #ddd;
         }
 
         .explanation-hi {
@@ -447,104 +454,67 @@
         }
 
         .guardian-alert {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.05));
+            background: rgba(239, 68, 68, 0.15);
             border: 1px solid rgba(239, 68, 68, 0.3);
-            padding: 15px;
+            padding: 12px;
             border-radius: 10px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .guardian-icon {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
         }
 
-        .guardian-text {
-            font-size: 0.9rem;
-        }
-
-        .guardian-status {
+        .guardian-sent {
             color: #22c55e;
             font-weight: 500;
-            margin-top: 5px;
         }
 
-        .timeline {
-            position: relative;
-            padding-left: 20px;
-        }
-
-        .timeline::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .timeline-item {
-            position: relative;
-            padding: 10px 0 10px 15px;
-            font-size: 0.85rem;
-        }
-
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -5px;
-            top: 14px;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #8b5cf6;
-        }
-
-        .timeline-time {
-            color: #666;
+        .api-log {
+            background: #000;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
             font-size: 0.75rem;
+            color: #22c55e;
+            max-height: 150px;
+            overflow-y: auto;
         }
 
-        .hidden {
-            display: none !important;
+        .api-log .request {
+            color: #60a5fa;
         }
 
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.5;
-            }
+        .api-log .response {
+            color: #22c55e;
         }
 
-        .pulsing {
-            animation: pulse 1.5s infinite;
+        .api-log .error {
+            color: #ef4444;
         }
 
-        @keyframes shake {
-
-            0%,
-            100% {
-                transform: translateX(0);
-            }
-
-            25% {
-                transform: translateX(-5px);
-            }
-
-            75% {
-                transform: translateX(5px);
-            }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
         }
 
-        .shaking {
-            animation: shake 0.3s infinite;
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #8b5cf6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
@@ -552,134 +522,140 @@
 <body>
     <div class="container">
         <header>
-            <h1>🛡️ Trust <span>Nest</span></h1>
-            <p class="subtitle">Senior Protection Simulator — Scenario-Based Demo</p>
+            <h1>🛡️ Trust <span>Nest</span> <span class="live-badge">LIVE BACKEND</span></h1>
+            <p class="subtitle">Senior Protection Simulator — Connected to DistilBERT API</p>
+            <div class="backend-status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Checking backend...</span>
+            </div>
         </header>
 
         <div class="layout">
-            <!-- Scenarios Panel -->
-            <div class="scenarios">
-                <h2>📋 Scenarios</h2>
+            <!-- Left Panel -->
+            <div class="panel">
+                <h2>📋 Test Scenarios</h2>
 
-                <button class="scenario-btn" onclick="runScenario('sms_otp')">
+                <button class="scenario-btn" onclick="runScenario('otp')">
                     <span class="scenario-icon">📱</span>
-                    <span class="scenario-name">OTP Phishing SMS</span>
-                    <span class="scenario-type">SMS • Rule Trigger • High Risk</span>
-                </button>
-
-                <button class="scenario-btn" onclick="runScenario('call_unknown')">
-                    <span class="scenario-icon">📞</span>
-                    <span class="scenario-name">Unknown Caller</span>
-                    <span class="scenario-type">Call • Metadata Check</span>
-                </button>
-
-                <button class="scenario-btn" onclick="runScenario('call_long')">
-                    <span class="scenario-icon">⏱️</span>
-                    <span class="scenario-name">Long Call Warning</span>
-                    <span class="scenario-type">Call • 5+ min duration</span>
+                    <span class="scenario-name">OTP Phishing</span>
+                    <span class="scenario-type">SMS • OTP Request</span>
                 </button>
 
                 <button class="scenario-btn" onclick="runScenario('digital_arrest')">
                     <span class="scenario-icon">🚨</span>
-                    <span class="scenario-name">Digital Arrest Attempt</span>
-                    <span class="scenario-type">Video Call • Critical Alert</span>
+                    <span class="scenario-name">Digital Arrest</span>
+                    <span class="scenario-type">Video Call • Critical</span>
                 </button>
 
-                <button class="scenario-btn" onclick="runScenario('family_scam')">
+                <button class="scenario-btn" onclick="runScenario('family')">
                     <span class="scenario-icon">👨‍👩‍👧</span>
                     <span class="scenario-name">Family Impersonation</span>
-                    <span class="scenario-type">WhatsApp • Guardian Alert</span>
+                    <span class="scenario-type">WhatsApp • UPI Payment</span>
                 </button>
 
-                <button class="scenario-btn" onclick="runScenario('safe_msg')">
-                    <span class="scenario-icon">✅</span>
-                    <span class="scenario-name">Legitimate Message</span>
-                    <span class="scenario-type">SMS • Safe Pass</span>
+                <button class="scenario-btn" onclick="runScenario('authority')">
+                    <span class="scenario-icon">👮</span>
+                    <span class="scenario-name">Authority Scam</span>
+                    <span class="scenario-type">Call • Threat + Urgency</span>
                 </button>
+
+                <button class="scenario-btn" onclick="runScenario('safe')">
+                    <span class="scenario-icon">✅</span>
+                    <span class="scenario-name">Safe Message</span>
+                    <span class="scenario-type">SMS • Legitimate</span>
+                </button>
+
+                <div class="custom-input">
+                    <h2>🔍 Custom Analysis</h2>
+                    <textarea id="customText" placeholder="Enter any message to analyze..."></textarea>
+                    <button class="analyze-btn" onclick="analyzeCustom()" id="analyzeBtn">
+                        Analyze with DistilBERT
+                    </button>
+                </div>
             </div>
 
-            <!-- Phone Simulator -->
-            <div style="position: relative;">
+            <!-- Center - Phone -->
+            <div class="phone-container">
                 <div class="phone">
                     <div class="phone-notch"></div>
-                    <div class="phone-screen" id="phoneScreen">
+                    <div class="phone-screen">
                         <div class="phone-header">
-                            <span>9:41 AM</span>
-                            <span>📶 WiFi 🔋</span>
+                            <span id="phoneTime">--:--</span>
+                            <span>📶 🔋</span>
                         </div>
                         <div class="phone-content" id="phoneContent">
-                            <div style="text-align: center; padding: 100px 20px; color: #666;">
+                            <div style="text-align: center; padding: 80px 20px; color: #666;">
                                 <p style="font-size: 3rem; margin-bottom: 20px;">👈</p>
-                                <p>Select a scenario to begin</p>
+                                <p>Select a scenario or enter custom text</p>
+                            </div>
+                        </div>
+                        <div class="warning-overlay hidden" id="warningOverlay">
+                            <div class="warning-content" id="warningContent"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Analysis -->
+            <div class="panel">
+                <h2>🔍 Live Analysis</h2>
+
+                <div class="section">
+                    <div class="section-title">Rule Engine</div>
+                    <div id="ruleResults">
+                        <span style="color: #666;">Waiting for input...</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">DistilBERT (66M params)</div>
+                    <div id="mlResults">
+                        <div class="ml-box">
+                            <div class="ml-row">
+                                <span>Label</span>
+                                <span style="color: #666;">—</span>
+                            </div>
+                            <div class="ml-row">
+                                <span>Confidence</span>
+                                <span style="color: #666;">—</span>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Warning Overlay -->
-                    <div class="warning-overlay hidden" id="warningOverlay">
-                        <div class="warning-content" id="warningContent">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Analysis Panel -->
-            <div class="analysis">
-                <h2>🔍 System Analysis</h2>
-
-                <div class="analysis-section">
-                    <div class="section-title">Pipeline Status</div>
-                    <div class="timeline" id="pipelineTimeline">
-                        <div class="timeline-item" style="color: #666;">
-                            Waiting for scenario...
-                        </div>
-                    </div>
                 </div>
 
-                <div class="analysis-section">
-                    <div class="section-title">Rule Engine</div>
-                    <div id="ruleResults">
-                        <span style="color: #666;">No rules triggered</span>
-                    </div>
-                </div>
-
-                <div class="analysis-section">
-                    <div class="section-title">DistilBERT ML</div>
-                    <div id="mlResults">
-                        <div class="ml-result">
-                            <span class="ml-label">—</span>
-                            <span class="ml-confidence">Waiting...</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="analysis-section">
+                <div class="section">
                     <div class="section-title">System Decision</div>
-                    <div id="systemDecision">
+                    <div id="decision">
                         <div class="decision-box safe">
                             <div class="decision-verdict safe">—</div>
-                            <div style="color: #888;">Awaiting input</div>
+                            <div style="color: #888; font-size: 0.85rem;">Awaiting analysis</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="analysis-section">
+                <div class="section">
                     <div class="section-title">Explainability</div>
-                    <div id="explainability">
-                        <div class="explanation">
-                            <div class="explanation-en">System will explain its decision here</div>
-                            <div class="explanation-hi">सिस्टम यहाँ अपना निर्णय समझाएगा</div>
+                    <div id="explanation">
+                        <div class="explanation-box">
+                            <div class="explanation-en" style="color: #666;">Explanation will appear here</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="analysis-section">
+                <div class="section">
                     <div class="section-title">Guardian Mode</div>
                     <div id="guardianStatus">
-                        <div style="color: #666; font-size: 0.9rem;">
-                            👨‍👩‍👧 Guardian paired: <strong>Son (Rahul)</strong><br>
+                        <div style="color: #666; font-size: 0.85rem;">
+                            👨‍👩‍👧 Paired: <strong>Son (Rahul)</strong><br>
                             <span style="color: #22c55e;">● Online</span>
                         </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">API Log</div>
+                    <div class="api-log" id="apiLog">
+                        <div class="request">&gt; Connecting to backend...</div>
                     </div>
                 </div>
             </div>
@@ -687,310 +663,219 @@
     </div>
 
     <script>
-        // Scenario definitions
+        const API_URL = 'http://localhost:8000';
+
         const scenarios = {
-            sms_otp: {
-                type: 'sms',
-                sender: '+91-98765-XXXXX',
-                senderName: 'Unknown',
-                message: 'Dear Customer, Your SBI account will be blocked. Share OTP 482951 to verify your account immediately.',
-                rules: ['OTP_REQUEST', 'THREAT', 'URGENCY'],
-                ml: { label: 'SCAM', confidence: 0.78 },
-                verdict: 'SCAM',
-                confidence: 0.92,
-                explanation_en: 'Contains OTP request. Banks NEVER ask for OTP via SMS.',
-                explanation_hi: 'OTP माँगा जा रहा है। बैंक कभी SMS से OTP नहीं माँगते।',
-                escalate: true,
-                escalateReason: 'High-risk OTP phishing detected'
-            },
-            call_unknown: {
-                type: 'call',
-                caller: '+91-70XX-XXX-XXX',
-                callerName: 'Unknown Number',
-                duration: 0,
-                rules: ['UNKNOWN_CALLER'],
-                ml: { label: 'SUSPICIOUS', confidence: 0.52 },
-                verdict: 'SUSPICIOUS',
-                confidence: 0.65,
-                explanation_en: 'Unknown caller. Proceed with caution.',
-                explanation_hi: 'अज्ञात कॉलर। सावधानी बरतें।',
-                escalate: false
-            },
-            call_long: {
-                type: 'call_active',
-                caller: '+91-70XX-XXX-XXX',
-                callerName: 'Unknown Number',
-                duration: 312,
-                rules: ['LONG_CALL_DURATION'],
-                ml: { label: 'SUSPICIOUS', confidence: 0.61 },
-                verdict: 'SUSPICIOUS',
-                confidence: 0.70,
-                explanation_en: 'Call exceeds 5 minutes with unknown number. Check if they asked for money or OTP.',
-                explanation_hi: '5 मिनट से ज्यादा अज्ञात नंबर से बात। क्या पैसे या OTP माँगा?',
-                escalate: true,
-                escalateReason: 'Extended call with unknown number'
-            },
-            digital_arrest: {
-                type: 'video_call',
-                caller: '+91-HIDDEN',
-                callerName: 'CBI/Police (Claimed)',
-                message: 'You are under DIGITAL ARREST. Stay on video call. Do not disconnect. Transfer ₹2,50,000 to clear your name.',
-                rules: ['DIGITAL_ARREST', 'AUTHORITY_IMPERSONATION', 'THREAT'],
-                ml: { label: 'SCAM', confidence: 0.89 },
-                verdict: 'SCAM',
-                confidence: 0.98,
-                explanation_en: 'CRITICAL: "Digital Arrest" is a SCAM. Police NEVER video call for arrests.',
-                explanation_hi: 'खतरा: "डिजिटल अरेस्ट" 100% स्कैम है। पुलिस कभी वीडियो कॉल नहीं करती।',
-                escalate: true,
-                escalateReason: 'Digital Arrest scam - CRITICAL'
-            },
-            family_scam: {
-                type: 'whatsapp',
-                sender: '+91-NEW-NUMBER',
-                senderName: 'Beta (Claimed)',
-                message: 'Hi Papa, this is Rahul. New number. Emergency situation. Please send ₹15,000 to this UPI: xyz@oksbi urgently.',
-                rules: ['FAMILY_IMPERSONATION', 'UPI_PRESENT', 'URGENCY'],
-                ml: { label: 'SCAM', confidence: 0.72 },
-                verdict: 'SCAM',
-                confidence: 0.88,
-                explanation_en: 'Family impersonation detected. ALWAYS verify by calling their OLD number.',
-                explanation_hi: 'परिवार का बहाना। पुराने नंबर पर कॉल करके पुष्टि करें!',
-                escalate: true,
-                escalateReason: 'Family impersonation with payment request'
-            },
-            safe_msg: {
-                type: 'sms',
-                sender: 'AMAZON',
-                senderName: 'Amazon India',
-                message: 'Your order #402-7891234 has been shipped and will arrive by Jan 18. Track at amazon.in/track',
-                rules: [],
-                ml: { label: 'SAFE', confidence: 0.91 },
-                verdict: 'SAFE',
-                confidence: 0.95,
-                explanation_en: 'Legitimate order update from verified sender.',
-                explanation_hi: 'सत्यापित प्रेषक से वास्तविक ऑर्डर अपडेट।',
-                escalate: false
-            }
+            otp: "Dear Customer, Your SBI account will be blocked. Share OTP 482951 to verify immediately.",
+            digital_arrest: "You are under DIGITAL ARREST. Stay on video call. Transfer ₹2,50,000 to clear your name. Do not disconnect.",
+            family: "Hi Papa, this is Rahul. New number. Emergency. Please send ₹15,000 to xyz@oksbi urgently.",
+            authority: "Court notice: Settlement of ₹50,000 required TODAY. Call immediately or FIR will be filed. +91-86854-XXXXX",
+            safe: "Your Amazon order #402-7891234 has been shipped and will arrive by tomorrow. Track at amazon.in"
         };
 
-        async function runScenario(scenarioId) {
-            const scenario = scenarios[scenarioId];
+        // Update time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('phoneTime').textContent =
+                now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
 
-            // Highlight active scenario
-            document.querySelectorAll('.scenario-btn').forEach(btn => btn.classList.remove('active'));
+        // Check backend status
+        async function checkBackend() {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            const log = document.getElementById('apiLog');
+
+            try {
+                const res = await fetch(`${API_URL}/api/health`);
+                const data = await res.json();
+
+                dot.className = 'status-dot connected';
+                text.innerHTML = `Backend: <strong>${data.distilbert ? 'DistilBERT Active' : 'Rules Only'}</strong>`;
+                log.innerHTML += `<div class="response">&gt; Connected: ${data.distilbert ? 'DistilBERT loaded' : 'Rule engine only'}</div>`;
+            } catch (e) {
+                dot.className = 'status-dot disconnected';
+                text.innerHTML = `<span style="color:#ef4444">Backend offline - Start with: python backend/app.py</span>`;
+                log.innerHTML += `<div class="error">&gt; Error: ${e.message}</div>`;
+            }
+        }
+        checkBackend();
+
+        function runScenario(id) {
+            document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
             event.target.closest('.scenario-btn').classList.add('active');
 
-            // Reset warning overlay
+            const text = scenarios[id];
+            document.getElementById('customText').value = text;
+            analyzeCustom();
+        }
+
+        async function analyzeCustom() {
+            const text = document.getElementById('customText').value.trim();
+            if (!text) return;
+
+            const btn = document.getElementById('analyzeBtn');
+            btn.disabled = true;
+            btn.textContent = 'Analyzing...';
+
+            // Show message on phone
+            showMessage(text);
+
+            // Log request
+            const log = document.getElementById('apiLog');
+            log.innerHTML += `<div class="request">&gt; POST /api/analyze</div>`;
+            log.innerHTML += `<div class="request">&gt; Text: "${text.substring(0, 40)}..."</div>`;
+
+            try {
+                const res = await fetch(`${API_URL}/api/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+
+                const data = await res.json();
+                log.innerHTML += `<div class="response">&gt; Response: ${data.verdict} (${Math.round(data.confidence * 100)}%)</div>`;
+
+                displayResult(data);
+
+            } catch (e) {
+                log.innerHTML += `<div class="error">&gt; Error: ${e.message}</div>`;
+                log.innerHTML += `<div class="error">&gt; Is backend running? python backend/app.py</div>`;
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Analyze with DistilBERT';
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function showMessage(text) {
             document.getElementById('warningOverlay').classList.add('hidden');
-
-            // Update phone screen based on type
-            await updatePhoneScreen(scenario);
-
-            // Animate pipeline
-            await animatePipeline(scenario);
-
-            // Show warning if needed
-            if (scenario.verdict !== 'SAFE') {
-                await showWarning(scenario);
-            }
+            document.getElementById('phoneContent').innerHTML = `
+                <div class="message-card">
+                    <div class="message-header">
+                        <span class="message-sender">📱 Incoming Message</span>
+                        <span class="message-time">Just now</span>
+                    </div>
+                    <div class="message-body">${text}</div>
+                </div>
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing with DistilBERT...</p>
+                </div>
+            `;
         }
 
-        async function updatePhoneScreen(scenario) {
-            const content = document.getElementById('phoneContent');
-
-            if (scenario.type === 'sms' || scenario.type === 'whatsapp') {
-                content.innerHTML = `
-                    <div class="sms-notification">
-                        <div class="sms-header">
-                            <span class="sms-sender">${scenario.type === 'whatsapp' ? '💬 ' : '📱 '}${scenario.senderName}</span>
-                            <span class="sms-time">Just now</span>
-                        </div>
-                        <div class="sms-body">${scenario.message}</div>
-                    </div>
-                    <div style="text-align: center; color: #666; margin-top: 30px; font-size: 0.9rem;">
-                        Analyzing message...
-                    </div>
-                `;
-            } else if (scenario.type === 'call') {
-                content.innerHTML = `
-                    <div class="incoming-call">
-                        <div class="caller-avatar">📞</div>
-                        <div class="caller-name">${scenario.callerName}</div>
-                        <div class="caller-number">${scenario.caller}</div>
-                        <div class="call-status pulsing">Incoming Call...</div>
-                        <div class="call-actions">
-                            <button class="call-btn decline">✕</button>
-                            <button class="call-btn accept">✓</button>
-                        </div>
-                    </div>
-                `;
-            } else if (scenario.type === 'call_active') {
-                content.innerHTML = `
-                    <div class="incoming-call">
-                        <div class="caller-avatar" style="background: linear-gradient(135deg, #ef4444, #dc2626);">📞</div>
-                        <div class="caller-name">${scenario.callerName}</div>
-                        <div class="caller-number">${scenario.caller}</div>
-                        <div class="call-duration">${Math.floor(scenario.duration / 60)}:${String(scenario.duration % 60).padStart(2, '0')}</div>
-                        <div class="call-status" style="color: #fbbf24;">⚠️ Long call detected</div>
-                    </div>
-                `;
-            } else if (scenario.type === 'video_call') {
-                content.innerHTML = `
-                    <div class="incoming-call shaking">
-                        <div class="caller-avatar" style="background: linear-gradient(135deg, #ef4444, #7f1d1d);">🎥</div>
-                        <div class="caller-name" style="color: #ef4444;">${scenario.callerName}</div>
-                        <div class="caller-number">${scenario.caller}</div>
-                        <div class="call-status" style="color: #ef4444;">🚨 VIDEO CALL - DANGER</div>
-                        <div style="margin-top: 20px; padding: 15px; background: rgba(239,68,68,0.2); border-radius: 10px; font-size: 0.85rem; color: #fca5a5;">
-                            "${scenario.message}"
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        async function animatePipeline(scenario) {
-            const timeline = document.getElementById('pipelineTimeline');
-            const ruleResults = document.getElementById('ruleResults');
-            const mlResults = document.getElementById('mlResults');
-            const systemDecision = document.getElementById('systemDecision');
-            const explainability = document.getElementById('explainability');
-            const guardianStatus = document.getElementById('guardianStatus');
-
-            // Reset
-            timeline.innerHTML = '';
-
-            // Step 1: Input received
-            await addTimelineItem(timeline, 'Input received', scenario.type.toUpperCase());
-            await sleep(400);
-
-            // Step 2: Rule Engine
-            await addTimelineItem(timeline, 'Rule Engine processing...');
-            await sleep(600);
-
-            if (scenario.rules.length > 0) {
-                ruleResults.innerHTML = scenario.rules.map(r =>
-                    `<span class="rule-trigger">${r}</span>`
-                ).join('');
-                await addTimelineItem(timeline, `${scenario.rules.length} rules triggered`, 'ALERT');
+        function displayResult(data) {
+            // Rules
+            const rules = document.getElementById('ruleResults');
+            if (data.rule_triggers && data.rule_triggers.length > 0) {
+                rules.innerHTML = data.rule_triggers.map(r => `<span class="rule-tag">${r}</span>`).join('');
             } else {
-                ruleResults.innerHTML = '<span style="color: #22c55e;">✓ No rules triggered</span>';
-                await addTimelineItem(timeline, 'No rules triggered', 'PASS');
+                rules.innerHTML = '<span style="color: #22c55e;">✓ No rules triggered</span>';
             }
-            await sleep(400);
 
-            // Step 3: DistilBERT
-            await addTimelineItem(timeline, 'DistilBERT inference...');
-            await sleep(800);
+            // ML
+            const mlColor = data.ml_label === 'SCAM' ? '#ef4444' :
+                data.ml_label === 'SUSPICIOUS' ? '#fbbf24' : '#22c55e';
+            const mlConf = data.ml_confidence ? Math.round(data.ml_confidence * 100) : 0;
 
-            const mlColor = scenario.ml.label === 'SCAM' ? '#ef4444' :
-                scenario.ml.label === 'SUSPICIOUS' ? '#fbbf24' : '#22c55e';
-            mlResults.innerHTML = `
-                <div class="ml-result">
-                    <span class="ml-label" style="color: ${mlColor}">${scenario.ml.label}</span>
-                    <span class="ml-confidence">${Math.round(scenario.ml.confidence * 100)}% confidence</span>
-                </div>
-                <div class="confidence-bar">
-                    <div class="confidence-fill" style="width: ${scenario.ml.confidence * 100}%"></div>
-                </div>
-            `;
-            await addTimelineItem(timeline, `ML: ${scenario.ml.label} (${Math.round(scenario.ml.confidence * 100)}%)`);
-            await sleep(400);
-
-            // Step 4: Decision
-            await addTimelineItem(timeline, 'Combining signals...');
-            await sleep(300);
-
-            const verdictClass = scenario.verdict.toLowerCase();
-            const verdictIcon = scenario.verdict === 'SCAM' ? '🚨' :
-                scenario.verdict === 'SUSPICIOUS' ? '⚠️' : '✅';
-
-            systemDecision.innerHTML = `
-                <div class="decision-box ${verdictClass}">
-                    <div class="decision-verdict ${verdictClass}">${verdictIcon} ${scenario.verdict}</div>
-                    <div style="color: #888;">${Math.round(scenario.confidence * 100)}% confidence</div>
-                </div>
-            `;
-            await addTimelineItem(timeline, `Decision: ${scenario.verdict}`, scenario.verdict);
-
-            // Step 5: Explainability
-            explainability.innerHTML = `
-                <div class="explanation">
-                    <div class="explanation-en">${scenario.explanation_en}</div>
-                    <div class="explanation-hi">${scenario.explanation_hi}</div>
+            document.getElementById('mlResults').innerHTML = `
+                <div class="ml-box">
+                    <div class="ml-row">
+                        <span>Label</span>
+                        <span style="color: ${mlColor}; font-weight: 600;">${data.ml_label || 'N/A'}</span>
+                    </div>
+                    <div class="ml-row">
+                        <span>Confidence</span>
+                        <span>${mlConf}%</span>
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: ${mlConf}%; background: ${mlColor};"></div>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 0.75rem; color: #666;">
+                        ${data.ml_used ? '✓ ML inference completed' : '⏭ Skipped (rule override)'}
+                    </div>
                 </div>
             `;
 
-            // Step 6: Guardian
-            if (scenario.escalate) {
-                await sleep(500);
-                guardianStatus.innerHTML = `
+            // Decision
+            const vClass = data.verdict.toLowerCase();
+            const vIcon = data.verdict === 'SCAM' ? '🚨' : data.verdict === 'SUSPICIOUS' ? '⚠️' : '✅';
+
+            document.getElementById('decision').innerHTML = `
+                <div class="decision-box ${vClass}">
+                    <div class="decision-verdict ${vClass}">${vIcon} ${data.verdict}</div>
+                    <div style="color: #888; font-size: 0.85rem;">${Math.round(data.confidence * 100)}% confidence</div>
+                </div>
+            `;
+
+            // Explanation
+            document.getElementById('explanation').innerHTML = `
+                <div class="explanation-box">
+                    <div class="explanation-en">${data.explanation_en}</div>
+                    <div class="explanation-hi">${data.explanation_hi}</div>
+                </div>
+            `;
+
+            // Guardian
+            if (data.should_escalate) {
+                document.getElementById('guardianStatus').innerHTML = `
                     <div class="guardian-alert">
                         <span class="guardian-icon">📱</span>
                         <div>
-                            <div class="guardian-text">${scenario.escalateReason}</div>
-                            <div class="guardian-status">✓ Alert sent to Rahul (Son)</div>
+                            <div>${data.escalation_reason}</div>
+                            <div class="guardian-sent">✓ Alert sent to Rahul</div>
                         </div>
                     </div>
                 `;
-                await addTimelineItem(timeline, 'Guardian alerted via FCM', 'SENT');
             } else {
-                guardianStatus.innerHTML = `
-                    <div style="color: #666; font-size: 0.9rem;">
-                        👨‍👩‍👧 Guardian paired: <strong>Son (Rahul)</strong><br>
+                document.getElementById('guardianStatus').innerHTML = `
+                    <div style="color: #666; font-size: 0.85rem;">
+                        👨‍👩‍👧 Paired: <strong>Son (Rahul)</strong><br>
                         <span style="color: #22c55e;">● Online</span> — No escalation needed
                     </div>
                 `;
             }
-        }
 
-        async function addTimelineItem(timeline, text, status = '') {
-            const item = document.createElement('div');
-            item.className = 'timeline-item';
-
-            const now = new Date();
-            const time = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-            let statusColor = '#888';
-            if (status === 'ALERT' || status === 'SCAM') statusColor = '#ef4444';
-            else if (status === 'PASS' || status === 'SAFE' || status === 'SENT') statusColor = '#22c55e';
-            else if (status === 'SUSPICIOUS') statusColor = '#fbbf24';
-
-            item.innerHTML = `
-                <div>${text}</div>
-                <div class="timeline-time">${time}${status ? ` • <span style="color:${statusColor}">${status}</span>` : ''}</div>
+            // Update phone
+            document.getElementById('phoneContent').innerHTML = `
+                <div class="message-card" style="border-left-color: ${mlColor};">
+                    <div class="message-header">
+                        <span class="message-sender">📱 Analyzed</span>
+                        <span class="message-time">Just now</span>
+                    </div>
+                    <div class="message-body">${document.getElementById('customText').value}</div>
+                </div>
             `;
-            timeline.appendChild(item);
+
+            // Show warning if not safe
+            if (data.verdict !== 'SAFE') {
+                showWarning(data);
+            }
         }
 
-        async function showWarning(scenario) {
-            await sleep(500);
-
+        function showWarning(data) {
             const overlay = document.getElementById('warningOverlay');
             const content = document.getElementById('warningContent');
 
-            const verdictClass = scenario.verdict.toLowerCase();
-            const icon = scenario.verdict === 'SCAM' ? '🚨' : '⚠️';
+            const icon = data.verdict === 'SCAM' ? '🚨' : '⚠️';
+            const title = data.verdict === 'SCAM' ? 'Scam Detected!' : 'Suspicious Message';
 
             content.innerHTML = `
                 <div class="warning-icon">${icon}</div>
-                <div class="warning-title ${verdictClass}">${scenario.verdict === 'SCAM' ? 'DANGER! Scam Detected' : 'Suspicious Activity'}</div>
+                <div class="warning-title ${data.verdict.toLowerCase()}">${title}</div>
                 <div class="warning-reason">
-                    ${scenario.explanation_en}<br><br>
-                    <em>${scenario.explanation_hi}</em>
+                    ${data.explanation_en}<br><br>
+                    <em>${data.explanation_hi}</em>
                 </div>
-                <div class="warning-actions">
-                    <button class="warning-btn primary">🚫 Block & Report</button>
-                    <button class="warning-btn secondary">📞 Call Family</button>
-                    <button class="warning-btn secondary" onclick="document.getElementById('warningOverlay').classList.add('hidden')">✕ Dismiss</button>
-                </div>
+                <button class="warning-btn primary">🚫 Block Sender</button>
+                <button class="warning-btn secondary">📞 Call Family</button>
+                <button class="warning-btn secondary" onclick="document.getElementById('warningOverlay').classList.add('hidden')">Dismiss</button>
             `;
 
             overlay.classList.remove('hidden');
-        }
-
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
         }
     </script>
 </body>
