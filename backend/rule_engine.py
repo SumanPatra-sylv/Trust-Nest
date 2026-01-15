@@ -231,57 +231,6 @@ class RuleEngine:
             reasons_hi.append("संदेह: परिवार का नकली संदेश + पैसे माँग रहा है। पुराने नंबर पर कॉल करके पुष्टि करें!")
             triggered_rules.append("FAMILY_IMPERSONATION")
         
-        # --- Rule 10: QR Code Scam ---
-        qr_patterns = [
-            r'scan.?qr', r'qr.?code', r'scan.?to.?receive', r'qr.?pay',
-            r'scan.?and.?pay', r'scan.?this.?qr'
-        ]
-        for pattern in qr_patterns:
-            if re.search(pattern, text_lower):
-                scam_score += 35
-                reasons_en.append("QR SCAM: Scanning QR is for PAYING, not receiving. Never scan to 'receive' money!")
-                reasons_hi.append("QR स्कैम: QR स्कैन करना = पैसे देना। पैसे लेने के लिए QR स्कैन नहीं होता!")
-                triggered_rules.append("QR_SCAM")
-                break
-        
-        # --- Rule 11: Lottery/Prize Scam ---
-        lottery_patterns = [
-            r'won.?lottery', r'you.?won', r'congratulations', r'prize.?winner',
-            r'lucky.?draw', r'jackpot', r'claim.?your.?prize', r'won.?rs',
-            r'lakh.?rupees', r'crore.?rupees', r'processing.?fee', r'claim.?fee'
-        ]
-        lottery_count = sum(1 for p in lottery_patterns if re.search(p, text_lower))
-        if lottery_count >= 2:
-            scam_score += 40
-            reasons_en.append("LOTTERY SCAM: Real lotteries don't ask for fees to claim prizes!")
-            reasons_hi.append("लॉटरी स्कैम: असली लॉटरी इनाम लेने के लिए फीस नहीं माँगती!")
-            triggered_rules.append("LOTTERY_SCAM")
-        
-        # --- Rule 12: Job/Work from Home Scam ---
-        job_patterns = [
-            r'work.?from.?home', r'part.?time.?job', r'earn.?daily', r'earn.?rs',
-            r'simple.?typing', r'data.?entry.?job', r'registration.?fee',
-            r'investment.?required', r'guaranteed.?income', r'earn.?\d+k?'
-        ]
-        job_count = sum(1 for p in job_patterns if re.search(p, text_lower))
-        if job_count >= 2:
-            scam_score += 30
-            reasons_en.append("JOB SCAM: Legitimate jobs never ask for registration fees!")
-            reasons_hi.append("नौकरी स्कैम: असली नौकरी कभी रजिस्ट्रेशन फीस नहीं माँगती!")
-            triggered_rules.append("JOB_SCAM")
-        
-        # --- Rule 13: Refund/Cashback Scam ---
-        refund_patterns = [
-            r'refund.?of', r'cashback', r'refund.?pending', r'claim.?refund',
-            r'refund.?rs', r'refund.?\d+', r'excess.?amount', r'return.?payment'
-        ]
-        if any(re.search(p, text_lower) for p in refund_patterns):
-            if signals['has_otp_request'] or signals['has_upi']:
-                scam_score += 35
-                reasons_en.append("REFUND SCAM: To receive refund you don't share OTP or scan QR!")
-                reasons_hi.append("रिफंड स्कैम: रिफंड लेने के लिए OTP या QR की जरूरत नहीं होती!")
-                triggered_rules.append("REFUND_SCAM")
-        
         # --- Determine final risk level ---
         if scam_score >= 60:
             risk_level = RiskLevel.SCAM
