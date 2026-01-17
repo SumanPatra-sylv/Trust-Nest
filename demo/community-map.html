@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trust Nest - Community Shield</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 25px 20px;
+            background: rgba(0, 0, 0, 0.4);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        .header h1 span {
+            background: linear-gradient(90deg, #22c55e, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        /* Navigation Menu */
+        .nav-menu {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-btn {
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: transparent;
+            color: #888;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn:hover {
+            border-color: rgba(255, 255, 255, 0.4);
+            color: #fff;
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-color: #22c55e;
+            color: #fff;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 20px;
+            background: rgba(34, 197, 94, 0.1);
+            border-bottom: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #22c55e;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            display: inline-block;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* View Containers */
+        .view-container {
+            display: none;
+        }
+
+        .view-container.active {
+            display: block;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* ========== MAP VIEW ========== */
+        .map-layout {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 900px) {
+            .map-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .map-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section-header {
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .filter-pills {
+            display: flex;
+            gap: 8px;
+        }
+
+        .pill {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            transition: all 0.2s;
+        }
+
+        .pill.active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        #map {
+            height: 480px;
+            width: 100%;
+        }
+
+        .scam-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .scam-tag {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            border: none;
+        }
+
+        .scam-tag.upi {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .scam-tag.otp {
+            background: rgba(249, 115, 22, 0.2);
+            color: #f97316;
+        }
+
+        .scam-tag.kyc {
+            background: rgba(168, 85, 247, 0.2);
+            color: #a855f7;
+        }
+
+        .scam-tag.arrest {
+            background: rgba(236, 72, 153, 0.2);
+            color: #ec4899;
+        }
+
+        .scam-tag.lottery {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        /* Feed Panel */
+        .feed-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .feed-content {
+            padding: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .feed-item {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 3px solid #ef4444;
+        }
+
+        .feed-type {
+            font-size: 0.7rem;
+            color: #ef4444;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .feed-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin: 4px 0;
+        }
+
+        .feed-meta {
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        /* ========== COMMUNITY PROTECTORS VIEW ========== */
+        .protectors-layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .protector-card {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .protector-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .protector-card.featured {
+            border-color: #fbbf24;
+            background: linear-gradient(145deg, rgba(251, 191, 36, 0.1), rgba(255, 255, 255, 0.02));
+        }
+
+        .protector-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .protector-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .protector-info h3 {
+            font-size: 1.2rem;
+            margin-bottom: 3px;
+        }
+
+        .protector-location {
+            color: #888;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .protector-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        .protector-badge.gold {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #000;
+        }
+
+        .protector-badge.hero {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: #fff;
+        }
+
+        .protector-badge.guardian {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: #fff;
+        }
+
+        /* Impact Stats */
+        .impact-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .impact-stat {
+            text-align: center;
+            padding: 15px 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+        }
+
+        .impact-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #22c55e;
+        }
+
+        .impact-stat-label {
+            font-size: 0.7rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        /* Protection Story */
+        .protection-story {
+            background: rgba(34, 197, 94, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            border-left: 4px solid #22c55e;
+        }
+
+        .story-label {
+            font-size: 0.7rem;
+            color: #22c55e;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .story-text {
+            font-size: 0.9rem;
+            color: #ccc;
+            line-height: 1.5;
+        }
+
+        .story-text strong {
+            color: #fff;
+        }
+
+        .story-outcome {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #22c55e;
+            font-weight: 600;
+        }
+
+        /* Motivation Section */
+        .motivation-banner {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(59, 130, 246, 0.2));
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            margin-top: 30px;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .motivation-banner h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .motivation-banner p {
+            color: #ccc;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .join-btn {
+            margin-top: 20px;
+            padding: 14px 40px;
+            border-radius: 30px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .join-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Leaflet popup */
+        .leaflet-popup-content-wrapper {
+            background: #1a1a2e;
+            color: #fff;
+            border-radius: 12px;
+        }
+
+        .leaflet-popup-tip {
+            background: #1a1a2e;
+        }
+
+        .popup-content h3 {
+            color: #ef4444;
+            margin-bottom: 5px;
+        }
+
+        .popup-content p {
+            color: #ccc;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🛡️ Trust Nest <span>Community Shield</span></h1>
+        <p>Together we protect our families • See how your community fights scams</p>
+    </div>
+
+    <!-- Navigation Menu -->
+    <div class="nav-menu">
+        <button class="nav-btn active" onclick="showView('map')">
+            📍 Scam Map
+        </button>
+        <button class="nav-btn" onclick="showView('protectors')">
+            🏆 Community Protectors
+        </button>
+    </div>
+
+    <div class="stats-bar">
+        <div class="stat">
+            <div class="stat-value">12,847</div>
+            <div class="stat-label">People Protected</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">3,291</div>
+            <div class="stat-label">Scams Blocked</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">₹4.2Cr</div>
+            <div class="stat-label">Money Saved</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value"><span class="live-dot"></span> 47</div>
+            <div class="stat-label">Active Now</div>
+        </div>
+    </div>
+
+    <!-- ========== MAP VIEW ========== -->
+    <div id="mapView" class="view-container active">
+        <div class="container">
+            <div class="map-layout">
+                <div class="map-section">
+                    <div class="section-header">
+                        <span>📍 Live Scam Reports - India</span>
+                        <div class="filter-pills">
+                            <button class="pill active">This Week</button>
+                            <button class="pill">This Month</button>
+                            <button class="pill">All Time</button>
+                        </div>
+                    </div>
+                    <div id="map"></div>
+                    <div class="scam-tags">
+                        <span style="color: #888; font-size: 0.8rem;">Filter:</span>
+                        <button class="scam-tag upi">🏦 UPI (892)</button>
+                        <button class="scam-tag otp">🔐 OTP (634)</button>
+                        <button class="scam-tag kyc">📋 KYC (412)</button>
+                        <button class="scam-tag arrest">👮 Arrest (287)</button>
+                        <button class="scam-tag lottery">🎰 Lottery (156)</button>
+                    </div>
+                </div>
+
+                <div class="feed-panel">
+                    <div class="section-header">
+                        <span>📢 Recent Reports</span>
+                        <span class="live-dot"></span>
+                    </div>
+                    <div class="feed-content" id="feedContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== COMMUNITY PROTECTORS VIEW ========== -->
+    <div id="protectorsView" class="view-container">
+        <div class="container">
+            <div class="protectors-layout" id="protectorsContainer"></div>
+
+            <div class="motivation-banner">
+                <h2>🌟 You Can Be a Protector Too!</h2>
+                <p>Every time you report a scam or help a family member stay safe, you become part of our community
+                    shield. Your actions protect thousands of seniors across India.</p>
+                <button class="join-btn">🛡️ Start Protecting Your Family</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =====================================================
+        // SIMULATED DATA
+        // =====================================================
+
+        const scamData = [
+            { city: "Mumbai", lat: 19.076, lng: 72.8777, reports: 847, type: "UPI Fraud", recent: "15 mins ago" },
+            { city: "Delhi", lat: 28.6139, lng: 77.209, reports: 623, type: "OTP Phishing", recent: "8 mins ago" },
+            { city: "Bangalore", lat: 12.9716, lng: 77.5946, reports: 512, type: "Digital Arrest", recent: "22 mins ago" },
+            { city: "Pune", lat: 18.5204, lng: 73.8567, reports: 234, type: "KYC Scam", recent: "5 mins ago" },
+            { city: "Hyderabad", lat: 17.385, lng: 78.4867, reports: 389, type: "Lottery Fraud", recent: "12 mins ago" },
+            { city: "Chennai", lat: 13.0827, lng: 80.2707, reports: 298, type: "UPI Fraud", recent: "18 mins ago" },
+            { city: "Kolkata", lat: 22.5726, lng: 88.3639, reports: 267, type: "OTP Phishing", recent: "30 mins ago" },
+            { city: "Ahmedabad", lat: 23.0225, lng: 72.5714, reports: 198, type: "Digital Arrest", recent: "45 mins ago" },
+            { city: "Jaipur", lat: 26.9124, lng: 75.7873, reports: 156, type: "KYC Scam", recent: "1 hour ago" },
+            { city: "Lucknow", lat: 26.8467, lng: 80.9462, reports: 134, type: "Lottery Fraud", recent: "2 hours ago" },
+        ];
+
+        const feedData = [
+            { type: "UPI_FRAUD", title: "QR Code Payment Scam", location: "Mumbai", time: "5 mins ago", reports: 12 },
+            { type: "OTP_PHISHING", title: "Bank OTP Request", location: "Pune", time: "8 mins ago", reports: 8 },
+            { type: "DIGITAL_ARREST", title: "Fake CBI Video Call", location: "Delhi", time: "15 mins ago", reports: 23 },
+            { type: "KYC_SCAM", title: "PhonePe KYC Update", location: "Bangalore", time: "22 mins ago", reports: 5 },
+            { type: "LOTTERY", title: "WhatsApp Lottery Win", location: "Hyderabad", time: "30 mins ago", reports: 7 },
+        ];
+
+        const protectorsData = [
+            {
+                name: "Rajesh Kumar",
+                city: "Mumbai, Maharashtra",
+                avatar: "👨‍🦳",
+                badge: "gold",
+                badgeText: "🏆 Top Protector",
+                protected: 47,
+                scamsReported: 23,
+                moneySaved: "₹12.5L",
+                story: "When my <strong>mother received a call</strong> claiming to be from the Income Tax department, Trust Nest immediately flagged it as a <strong>Digital Arrest scam</strong>. The app showed her the 'Safely End' button and she disconnected immediately.",
+                outcome: "Prevented ₹2.5L fraud attempt",
+                featured: true
+            },
+            {
+                name: "Priya Sharma",
+                city: "Delhi NCR",
+                avatar: "👩",
+                badge: "hero",
+                badgeText: "🦸 Scam Hunter",
+                protected: 38,
+                scamsReported: 45,
+                moneySaved: "₹8.2L",
+                story: "My <strong>father-in-law</strong> almost shared his OTP with a caller pretending to be from his bank. Trust Nest detected the pattern and <strong>automatically notified me</strong>. I called him and stopped the scam in time.",
+                outcome: "Saved ₹75,000 from bank fraud",
+                featured: false
+            },
+            {
+                name: "Amit Patel",
+                city: "Ahmedabad, Gujarat",
+                avatar: "👨",
+                badge: "guardian",
+                badgeText: "🛡️ Family Guardian",
+                protected: 32,
+                scamsReported: 18,
+                moneySaved: "₹5.8L",
+                story: "A scammer sent my <strong>elderly aunt</strong> a fake UPI QR code claiming refund. The app detected it was from an unknown merchant and showed <strong>high-risk warning</strong>. She used 'Call Family' button and I helped her.",
+                outcome: "Blocked UPI fraud of ₹48,000",
+                featured: false
+            },
+            {
+                name: "Sunita Devi",
+                city: "Jaipur, Rajasthan",
+                avatar: "👵",
+                badge: "guardian",
+                badgeText: "🌟 Senior Champion",
+                protected: 28,
+                scamsReported: 12,
+                moneySaved: "₹3.2L",
+                story: "I'm 68 years old and <strong>I protected myself!</strong> When I received a lottery winning message, Trust Nest showed me it was a scam. Now I help other seniors in my building understand these tricks.",
+                outcome: "Self-protected + trained 15 neighbors",
+                featured: false
+            },
+            {
+                name: "Vikram Singh",
+                city: "Chandigarh",
+                avatar: "👨‍🦱",
+                badge: "hero",
+                badgeText: "📢 Community Voice",
+                protected: 24,
+                scamsReported: 35,
+                moneySaved: "₹2.1L",
+                story: "My <strong>parents</strong> received a threatening call about Aadhaar being misused for terrorism. Trust Nest detected it immediately and showed <strong>'This is a known scam pattern'</strong>. They felt safe knowing it was fake.",
+                outcome: "Parents stayed calm, scammer blocked",
+                featured: false
+            },
+            {
+                name: "Meera Krishnan",
+                city: "Chennai, Tamil Nadu",
+                avatar: "👩‍🦳",
+                badge: "guardian",
+                badgeText: "💚 Caring Daughter",
+                protected: 19,
+                scamsReported: 8,
+                moneySaved: "₹1.5L",
+                story: "I installed Trust Nest on my <strong>widowed mother's phone</strong>. Last week she received a KYC update SMS with a suspicious link. The app blocked it and I got an <strong>instant WhatsApp alert</strong> to check on her.",
+                outcome: "Mom protected, daughter notified instantly",
+                featured: false
+            }
+        ];
+
+        // =====================================================
+        // VIEW SWITCHING
+        // =====================================================
+
+        function showView(view) {
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+
+            if (view === 'map') {
+                document.getElementById('mapView').classList.add('active');
+                document.querySelector('.nav-btn:nth-child(1)').classList.add('active');
+            } else {
+                document.getElementById('protectorsView').classList.add('active');
+                document.querySelector('.nav-btn:nth-child(2)').classList.add('active');
+            }
+        }
+
+        // =====================================================
+        // MAP INITIALIZATION
+        // =====================================================
+
+        const map = L.map('map').setView([20.5937, 78.9629], 5);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap © CARTO',
+            maxZoom: 19
+        }).addTo(map);
+
+        scamData.forEach(city => {
+            const size = Math.min(Math.max(city.reports / 25, 12), 40);
+            const colors = {
+                "UPI Fraud": "#ef4444", "OTP Phishing": "#f97316", "KYC Scam": "#a855f7",
+                "Digital Arrest": "#ec4899", "Lottery Fraud": "#22c55e"
+            };
+
+            L.circleMarker([city.lat, city.lng], {
+                radius: size, fillColor: colors[city.type] || "#3b82f6",
+                color: '#fff', weight: 2, fillOpacity: 0.7
+            }).addTo(map).bindPopup(`
+                <div class="popup-content">
+                    <h3>${city.city}</h3>
+                    <p style="font-size: 1.3rem; font-weight: bold; color: #22c55e;">${city.reports} reports</p>
+                    <p><strong>Top scam:</strong> ${city.type}</p>
+                    <p><strong>Latest:</strong> ${city.recent}</p>
+                </div>
+            `);
+        });
+
+        // =====================================================
+        // POPULATE FEED
+        // =====================================================
+
+        document.getElementById('feedContainer').innerHTML = feedData.map(item => `
+            <div class="feed-item">
+                <div class="feed-type">${item.type.replace('_', ' ')}</div>
+                <div class="feed-title">${item.title}</div>
+                <div class="feed-meta">${item.reports} reports • ${item.time} • 📍 ${item.location}</div>
+            </div>
+        `).join('');
+
+        // =====================================================
+        // POPULATE PROTECTORS
+        // =====================================================
+
+        document.getElementById('protectorsContainer').innerHTML = protectorsData.map(p => `
+            <div class="protector-card ${p.featured ? 'featured' : ''}">
+                <div class="protector-header">
+                    <div class="protector-avatar">${p.avatar}</div>
+                    <div class="protector-info">
+                        <h3>${p.name}</h3>
+                        <div class="protector-location">📍 ${p.city}</div>
+                        <span class="protector-badge ${p.badge}">${p.badgeText}</span>
+                    </div>
+                </div>
+
+                <div class="impact-stats">
+                    <div class="impact-stat">
+                        <div class="impact-stat-value">${p.protected}</div>
+                        <div class="impact-stat-label">Protected</div>
+                    </div>
+                    <div class="impact-stat">
+                        <div class="impact-stat-value">${p.scamsReported}</div>
+                        <div class="impact-stat-label">Reported</div>
+                    </div>
+                    <div class="impact-stat">
+                        <div class="impact-stat-value">${p.moneySaved}</div>
+                        <div class="impact-stat-label">Saved</div>
+                    </div>
+                </div>
+
+                <div class="protection-story">
+                    <div class="story-label">✨ How They Protected</div>
+                    <div class="story-text">${p.story}</div>
+                    <div class="story-outcome">✅ ${p.outcome}</div>
+                </div>
+            </div>
+        `).join('');
+    </script>
+</body>
+
+</html>

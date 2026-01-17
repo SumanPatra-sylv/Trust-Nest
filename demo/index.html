@@ -48,6 +48,45 @@
             font-size: 0.95rem;
         }
 
+        /* Navigation Menu */
+        .nav-menu {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .nav-btn {
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: transparent;
+            color: #888;
+            transition: all 0.3s;
+        }
+
+        .nav-btn:hover {
+            border-color: rgba(255, 255, 255, 0.4);
+            color: #fff;
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-color: #22c55e;
+            color: #fff;
+        }
+
+        .view-container {
+            display: none;
+        }
+
+        .view-container.active {
+            display: block;
+        }
+
         .live-badge {
             display: inline-block;
             background: #22c55e;
@@ -285,15 +324,18 @@
             inset: 0;
             background: rgba(0, 0, 0, 0.95);
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
             border-radius: 25px;
             z-index: 10;
+            overflow-y: auto;
+            padding: 20px 0;
         }
 
         .warning-content {
             text-align: center;
-            padding: 30px;
+            padding: 20px;
+            max-width: 280px;
         }
 
         .warning-icon {
@@ -528,135 +570,219 @@
                 <span class="status-dot" id="statusDot"></span>
                 <span id="statusText">Checking backend...</span>
             </div>
+            <div class="nav-menu">
+                <button class="nav-btn active" onclick="showView('demo')">🔍 Demo</button>
+                <button class="nav-btn" onclick="showView('dashboard')">📊 Dashboard</button>
+            </div>
         </header>
 
-        <div class="layout">
-            <!-- Left Panel -->
-            <div class="panel">
-                <h2>📋 Test Scenarios</h2>
+        <!-- Demo View -->
+        <div id="demoView" class="view-container active">
+            <div class="layout">
+                <!-- Left Panel -->
+                <div class="panel">
+                    <h2>📋 Test Scenarios</h2>
 
-                <button class="scenario-btn" onclick="runScenario('otp')">
-                    <span class="scenario-icon">📱</span>
-                    <span class="scenario-name">OTP Phishing</span>
-                    <span class="scenario-type">SMS • OTP Request</span>
-                </button>
-
-                <button class="scenario-btn" onclick="runScenario('digital_arrest')">
-                    <span class="scenario-icon">🚨</span>
-                    <span class="scenario-name">Digital Arrest</span>
-                    <span class="scenario-type">Video Call • Critical</span>
-                </button>
-
-                <button class="scenario-btn" onclick="runScenario('family')">
-                    <span class="scenario-icon">👨‍👩‍👧</span>
-                    <span class="scenario-name">Family Impersonation</span>
-                    <span class="scenario-type">WhatsApp • UPI Payment</span>
-                </button>
-
-                <button class="scenario-btn" onclick="runScenario('authority')">
-                    <span class="scenario-icon">👮</span>
-                    <span class="scenario-name">Authority Scam</span>
-                    <span class="scenario-type">Call • Threat + Urgency</span>
-                </button>
-
-                <button class="scenario-btn" onclick="runScenario('safe')">
-                    <span class="scenario-icon">✅</span>
-                    <span class="scenario-name">Safe Message</span>
-                    <span class="scenario-type">SMS • Legitimate</span>
-                </button>
-
-                <div class="custom-input">
-                    <h2>🔍 Custom Analysis</h2>
-                    <textarea id="customText" placeholder="Enter any message to analyze..."></textarea>
-                    <button class="analyze-btn" onclick="analyzeCustom()" id="analyzeBtn">
-                        Analyze with DistilBERT
+                    <button class="scenario-btn" onclick="runScenario('otp')">
+                        <span class="scenario-icon">📱</span>
+                        <span class="scenario-name">OTP Phishing</span>
+                        <span class="scenario-type">SMS • OTP Request</span>
                     </button>
+
+                    <button class="scenario-btn" onclick="runScenario('digital_arrest')">
+                        <span class="scenario-icon">🚨</span>
+                        <span class="scenario-name">Digital Arrest</span>
+                        <span class="scenario-type">Video Call • Critical</span>
+                    </button>
+
+                    <button class="scenario-btn" onclick="runScenario('family')">
+                        <span class="scenario-icon">👨‍👩‍👧</span>
+                        <span class="scenario-name">Family Impersonation</span>
+                        <span class="scenario-type">WhatsApp • UPI Payment</span>
+                    </button>
+
+                    <button class="scenario-btn" onclick="runScenario('authority')">
+                        <span class="scenario-icon">👮</span>
+                        <span class="scenario-name">Authority Scam</span>
+                        <span class="scenario-type">Call • Threat + Urgency</span>
+                    </button>
+
+                    <button class="scenario-btn" onclick="runScenario('safe')">
+                        <span class="scenario-icon">✅</span>
+                        <span class="scenario-name">Safe Message</span>
+                        <span class="scenario-type">SMS • Legitimate</span>
+                    </button>
+
+                    <button class="scenario-btn" onclick="startCallDemo()"
+                        style="background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(168,85,247,0.05)); border-color: rgba(168,85,247,0.4);">
+                        <span class="scenario-icon">📞</span>
+                        <span class="scenario-name">Incoming Call Shield</span>
+                        <span class="scenario-type">Unknown Caller • Live Demo</span>
+                    </button>
+
+                    <div class="custom-input">
+                        <h2>🔍 Custom Analysis</h2>
+                        <textarea id="customText" placeholder="Enter any message to analyze..."></textarea>
+                        <button class="analyze-btn" onclick="analyzeCustom()" id="analyzeBtn">
+                            Analyze with DistilBERT
+                        </button>
+                    </div>
+
+                    <div class="custom-input"
+                        style="margin-top: 15px; background: linear-gradient(135deg, rgba(251,191,36,0.1), rgba(251,191,36,0.02)); border-color: rgba(251,191,36,0.3);">
+                        <h2 style="color: #fbbf24;">📢 Report New Scam</h2>
+                        <p style="color: #888; font-size: 0.8rem; margin-bottom: 10px;">Help train our AI by reporting
+                            new scam patterns</p>
+                        <button class="analyze-btn" onclick="showNewScamReport()"
+                            style="background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000;">
+                            + Report New Scam Type
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Center - Phone -->
+                <div class="phone-container">
+                    <div class="phone">
+                        <div class="phone-notch"></div>
+                        <div class="phone-screen">
+                            <div class="phone-header">
+                                <span id="phoneTime">--:--</span>
+                                <span>📶 🔋</span>
+                            </div>
+                            <div class="phone-content" id="phoneContent">
+                                <div style="text-align: center; padding: 80px 20px; color: #666;">
+                                    <p style="font-size: 3rem; margin-bottom: 20px;">👈</p>
+                                    <p>Select a scenario or enter custom text</p>
+                                </div>
+                            </div>
+                            <div class="warning-overlay hidden" id="warningOverlay">
+                                <div class="warning-content" id="warningContent"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel - Analysis -->
+                <div class="panel">
+                    <h2>🔍 Live Analysis</h2>
+
+                    <div class="section">
+                        <div class="section-title">Rule Engine</div>
+                        <div id="ruleResults">
+                            <span style="color: #666;">Waiting for input...</span>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">DistilBERT (66M params)</div>
+                        <div id="mlResults">
+                            <div class="ml-box">
+                                <div class="ml-row">
+                                    <span>Label</span>
+                                    <span style="color: #666;">—</span>
+                                </div>
+                                <div class="ml-row">
+                                    <span>Confidence</span>
+                                    <span style="color: #666;">—</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">System Decision</div>
+                        <div id="decision">
+                            <div class="decision-box safe">
+                                <div class="decision-verdict safe">—</div>
+                                <div style="color: #888; font-size: 0.85rem;">Awaiting analysis</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">Explainability</div>
+                        <div id="explanation">
+                            <div class="explanation-box">
+                                <div class="explanation-en" style="color: #666;">Explanation will appear here</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">Guardian Mode</div>
+                        <div id="guardianStatus">
+                            <div style="color: #666; font-size: 0.85rem;">
+                                👨‍👩‍👧 Paired: <strong>Son (Rahul)</strong><br>
+                                <span style="color: #22c55e;">● Online</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">API Log</div>
+                        <div class="api-log" id="apiLog">
+                            <div class="request">&gt; Connecting to backend...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> <!-- End demoView -->
+
+    <!-- Dashboard View -->
+    <div id="dashboardView" class="view-container">
+        <div style="padding: 20px;">
+            <!-- Stats Cards -->
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                <div
+                    style="background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.05)); padding: 25px; border-radius: 16px; border: 1px solid rgba(34,197,94,0.3); text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; color: #22c55e;" id="dashProtectedCount">0</div>
+                    <div style="color: #888; font-size: 0.85rem; text-transform: uppercase;">Scams Protected</div>
+                </div>
+                <div
+                    style="background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.05)); padding: 25px; border-radius: 16px; border: 1px solid rgba(239,68,68,0.3); text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; color: #ef4444;" id="dashReportedCount">0</div>
+                    <div style="color: #888; font-size: 0.85rem; text-transform: uppercase;">Scams Reported</div>
+                </div>
+                <div
+                    style="background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(59,130,246,0.05)); padding: 25px; border-radius: 16px; border: 1px solid rgba(59,130,246,0.3); text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; color: #3b82f6;" id="dashMoneySaved">₹0</div>
+                    <div style="color: #888; font-size: 0.85rem; text-transform: uppercase;">Money Saved</div>
                 </div>
             </div>
 
-            <!-- Center - Phone -->
-            <div class="phone-container">
-                <div class="phone">
-                    <div class="phone-notch"></div>
-                    <div class="phone-screen">
-                        <div class="phone-header">
-                            <span id="phoneTime">--:--</span>
-                            <span>📶 🔋</span>
-                        </div>
-                        <div class="phone-content" id="phoneContent">
-                            <div style="text-align: center; padding: 80px 20px; color: #666;">
-                                <p style="font-size: 3rem; margin-bottom: 20px;">👈</p>
-                                <p>Select a scenario or enter custom text</p>
-                            </div>
-                        </div>
-                        <div class="warning-overlay hidden" id="warningOverlay">
-                            <div class="warning-content" id="warningContent"></div>
-                        </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Scam Types Breakdown -->
+                <div
+                    style="background: rgba(255,255,255,0.05); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); padding: 20px;">
+                    <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">📊 Scam Types
+                        Detected</h3>
+                    <div id="scamTypesChart">
+                        <div style="color: #666; text-align: center; padding: 30px;">No scams detected yet</div>
+                    </div>
+                </div>
+
+                <!-- Reported Scams List -->
+                <div
+                    style="background: rgba(255,255,255,0.05); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); padding: 20px;">
+                    <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">📢 Reported Scams
+                    </h3>
+                    <div id="reportedScamsList" style="max-height: 350px; overflow-y: auto;">
+                        <div style="color: #666; text-align: center; padding: 30px;">No scams reported yet. Report a
+                            scam after safely ending an interaction!</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Panel - Analysis -->
-            <div class="panel">
-                <h2>🔍 Live Analysis</h2>
-
-                <div class="section">
-                    <div class="section-title">Rule Engine</div>
-                    <div id="ruleResults">
-                        <span style="color: #666;">Waiting for input...</span>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <div class="section-title">DistilBERT (66M params)</div>
-                    <div id="mlResults">
-                        <div class="ml-box">
-                            <div class="ml-row">
-                                <span>Label</span>
-                                <span style="color: #666;">—</span>
-                            </div>
-                            <div class="ml-row">
-                                <span>Confidence</span>
-                                <span style="color: #666;">—</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <div class="section-title">System Decision</div>
-                    <div id="decision">
-                        <div class="decision-box safe">
-                            <div class="decision-verdict safe">—</div>
-                            <div style="color: #888; font-size: 0.85rem;">Awaiting analysis</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <div class="section-title">Explainability</div>
-                    <div id="explanation">
-                        <div class="explanation-box">
-                            <div class="explanation-en" style="color: #666;">Explanation will appear here</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <div class="section-title">Guardian Mode</div>
-                    <div id="guardianStatus">
-                        <div style="color: #666; font-size: 0.85rem;">
-                            👨‍👩‍👧 Paired: <strong>Son (Rahul)</strong><br>
-                            <span style="color: #22c55e;">● Online</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <div class="section-title">API Log</div>
-                    <div class="api-log" id="apiLog">
-                        <div class="request">&gt; Connecting to backend...</div>
-                    </div>
+            <!-- Recent Protection History -->
+            <div
+                style="background: rgba(255,255,255,0.05); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); padding: 20px; margin-top: 20px;">
+                <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">🛡️ Protection History
+                </h3>
+                <div id="protectionHistory" style="max-height: 250px; overflow-y: auto;">
+                    <div style="color: #666; text-align: center; padding: 30px;">Your protection history will appear
+                        here</div>
                 </div>
             </div>
         </div>
@@ -664,6 +790,13 @@
 
     <script>
         const API_URL = 'http://localhost:8000';
+
+        // ====== SCAM DATA STORAGE ======
+        let reportedScams = [];
+        let protectedScams = [];
+        let scamTypeCount = {};
+        let totalMoneySaved = 0;
+        let lastAnalyzedScam = null;
 
         const scenarios = {
             otp: "Dear Customer, Your SBI account will be blocked. Share OTP 482951 to verify immediately.",
@@ -768,6 +901,12 @@
         }
 
         function displayResult(data) {
+            // Store for reporting feature
+            lastAnalyzedScam = {
+                ...data,
+                text: document.getElementById('customText').value
+            };
+
             // Rules
             const rules = document.getElementById('ruleResults');
             if (data.rule_triggers && data.rule_triggers.length > 0) {
@@ -800,14 +939,15 @@
                 </div>
             `;
 
-            // Decision
+            // Decision - De-emphasize confidence, focus on verdict
             const vClass = data.verdict.toLowerCase();
-            const vIcon = data.verdict === 'SCAM' ? '🚨' : data.verdict === 'SUSPICIOUS' ? '⚠️' : '✅';
+            const vIcon = data.verdict === 'SCAM' ? '🛑' : data.verdict === 'SUSPICIOUS' ? '⚠️' : '✅';
+            const vLabel = data.verdict === 'SCAM' ? 'HIGH RISK' : data.verdict === 'SUSPICIOUS' ? 'CAUTION ADVISED' : 'SAFE';
 
             document.getElementById('decision').innerHTML = `
                 <div class="decision-box ${vClass}">
-                    <div class="decision-verdict ${vClass}">${vIcon} ${data.verdict}</div>
-                    <div style="color: #888; font-size: 0.85rem;">${Math.round(data.confidence * 100)}% confidence</div>
+                    <div class="decision-verdict ${vClass}">${vIcon} ${vLabel}</div>
+                    <div style="color: #666; font-size: 0.75rem; margin-top: 4px;">${Math.round(data.confidence * 100)}% confidence</div>
                 </div>
             `;
 
@@ -819,14 +959,14 @@
                 </div>
             `;
 
-            // Guardian
+            // Guardian - Supportive wording, not alert-ish
             if (data.should_escalate) {
                 document.getElementById('guardianStatus').innerHTML = `
                     <div class="guardian-alert">
-                        <span class="guardian-icon">📱</span>
+                        <span class="guardian-icon">🤝</span>
                         <div>
-                            <div>${data.escalation_reason}</div>
-                            <div class="guardian-sent">✓ Alert sent to Rahul</div>
+                            <div style="color: #22c55e; font-weight: 600;">Rahul has been informed and can help you now</div>
+                            <div style="color: #888; font-size: 0.8rem; margin-top: 4px;">Your family member is aware of this situation</div>
                         </div>
                     </div>
                 `;
@@ -834,7 +974,7 @@
                 document.getElementById('guardianStatus').innerHTML = `
                     <div style="color: #666; font-size: 0.85rem;">
                         👨‍👩‍👧 Paired: <strong>Son (Rahul)</strong><br>
-                        <span style="color: #22c55e;">● Online</span> — No escalation needed
+                        <span style="color: #22c55e;">● Online</span> — Ready to help if needed
                     </div>
                 `;
             }
@@ -860,8 +1000,12 @@
             const overlay = document.getElementById('warningOverlay');
             const content = document.getElementById('warningContent');
 
-            const icon = data.verdict === 'SCAM' ? '🚨' : '⚠️';
-            const title = data.verdict === 'SCAM' ? 'Scam Detected!' : 'Suspicious Message';
+            // Reframe: Not "Scam Detected" but "High-Risk Situation"
+            const icon = data.verdict === 'SCAM' ? '🛑' : '⚠️';
+            const title = data.verdict === 'SCAM' ? 'High-Risk Situation Detected' : 'Proceed With Caution';
+            const subtext = data.verdict === 'SCAM'
+                ? 'This message shows signs of a common scam pattern.'
+                : 'This message has some concerning elements.';
 
             content.innerHTML = `
                 <div class="warning-icon">${icon}</div>
@@ -870,12 +1014,644 @@
                     ${data.explanation_en}<br><br>
                     <em>${data.explanation_hi}</em>
                 </div>
-                <button class="warning-btn primary">🚫 Block Sender</button>
-                <button class="warning-btn secondary">📞 Call Family</button>
-                <button class="warning-btn secondary" onclick="document.getElementById('warningOverlay').classList.add('hidden')">Dismiss</button>
+                <div style="color: #888; font-size: 0.85rem; margin: 15px 0 15px; text-align: center;">Choose a safe next step:</div>
+                <button class="warning-btn primary" style="background: #f59e0b;" onclick="handlePauseThink(this)">🛑 Pause & Think (10s)</button>
+                <button class="warning-btn secondary" onclick="handleCallFamily()">📞 Call Family for Help</button>
+                <button class="warning-btn secondary" onclick="handleSafelyEnd()" style="background: rgba(34,197,94,0.2); color: #22c55e;">✅ Safely End Interaction</button>
             `;
 
             overlay.classList.remove('hidden');
+        }
+
+        // ====== SAFE EXIT BUTTON HANDLERS ======
+
+        function handlePauseThink(btn) {
+            // Simulates a 10-second pause countdown to help senior breathe and think
+            btn.disabled = true;
+            let seconds = 10;
+            const originalText = btn.textContent;
+
+            const countdown = setInterval(() => {
+                btn.textContent = `⏱️ Take a breath... ${seconds}s`;
+                btn.style.background = '#f97316';
+                seconds--;
+
+                if (seconds < 0) {
+                    clearInterval(countdown);
+                    btn.textContent = '✅ Good job! Now choose safely';
+                    btn.style.background = '#22c55e';
+                    btn.disabled = false;
+
+                    // Log to API panel
+                    const log = document.getElementById('apiLog');
+                    log.innerHTML += `<div class="response">> ACTION: User paused for 10 seconds</div>`;
+                    log.scrollTop = log.scrollHeight;
+                }
+            }, 1000);
+        }
+
+        function handleCallFamily() {
+            // Simulates initiating a call to the family guardian
+            const overlay = document.getElementById('warningOverlay');
+            const content = document.getElementById('warningContent');
+
+            content.innerHTML = `
+                <div class="warning-icon">📞</div>
+                <div class="warning-title" style="color: #22c55e;">Calling Rahul...</div>
+                <div class="warning-reason">
+                    <div style="font-size: 2rem; margin: 20px 0;">👨 Son (Rahul)</div>
+                    <div style="color: #888;">+91 98765-43210</div>
+                    <div style="margin-top: 20px; padding: 15px; background: rgba(34,197,94,0.2); border-radius: 10px;">
+                        📱 On a real device, this would initiate a phone call to your trusted family member
+                    </div>
+                </div>
+                <button class="warning-btn primary" style="background: #ef4444;" onclick="document.getElementById('warningOverlay').classList.add('hidden')">📵 End Call</button>
+                <button class="warning-btn secondary" onclick="document.getElementById('warningOverlay').classList.add('hidden')">← Back</button>
+            `;
+
+            // Log to API panel
+            const log = document.getElementById('apiLog');
+            log.innerHTML += `<div class="response">> ACTION: Calling family guardian (Rahul)</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function handleSafelyEnd() {
+            // Shows confirmation that interaction has been safely ended
+            const overlay = document.getElementById('warningOverlay');
+            const content = document.getElementById('warningContent');
+
+            // Track this as protected
+            if (lastAnalyzedScam) {
+                protectedScams.push({
+                    ...lastAnalyzedScam,
+                    timestamp: new Date().toLocaleString()
+                });
+
+                // Update scam type count
+                const scamType = lastAnalyzedScam.rule_triggers?.[0] || 'UNKNOWN';
+                scamTypeCount[scamType] = (scamTypeCount[scamType] || 0) + 1;
+
+                // Estimate money saved (random for demo)
+                const saved = Math.floor(Math.random() * 50000) + 10000;
+                totalMoneySaved += saved;
+            }
+
+            content.innerHTML = `
+                <div class="warning-icon">✅</div>
+                <div class="warning-title" style="color: #22c55e;">You Stayed Safe!</div>
+                <div class="warning-reason">
+                    <div style="font-size: 1.1rem; margin-bottom: 15px;">You chose to step away from a risky situation.</div>
+                    <div style="padding: 15px; background: rgba(34,197,94,0.2); border-radius: 10px; text-align: left;">
+                        <strong>What happened:</strong><br>
+                        ✓ Message marked as risky<br>
+                        ✓ Sender will be blocked<br>
+                        ✓ Rahul was notified<br>
+                        ✓ Interaction ended safely
+                    </div>
+                </div>
+                <div style="color: #888; font-size: 0.85rem; margin: 15px 0 10px; text-align: center;">Help protect others:</div>
+                <button class="warning-btn primary" style="background: #ef4444;" onclick="showReportScamForm()">📢 Report This Scam</button>
+                <button class="warning-btn secondary" style="background: #22c55e; color: #fff;" onclick="finishSafelyEnd()">👍 Done</button>
+            `;
+
+            // Log to API panel
+            const log = document.getElementById('apiLog');
+            log.innerHTML += `<div class="response">> ACTION: User safely ended interaction</div>`;
+            log.innerHTML += `<div class="response">> Guardian notified, sender blocked</div>`;
+            log.scrollTop = log.scrollHeight;
+
+            updateDashboard();
+        }
+
+        function finishSafelyEnd() {
+            document.getElementById('warningOverlay').classList.add('hidden');
+        }
+
+        function showReportScamForm() {
+            const content = document.getElementById('warningContent');
+
+            content.innerHTML = `
+                <div class="warning-icon">📢</div>
+                <div class="warning-title" style="color: #3b82f6;">Report This Scam</div>
+                <div class="warning-reason">
+                    <div style="text-align: left; margin-bottom: 15px;">
+                        <label style="display: block; color: #888; font-size: 0.85rem; margin-bottom: 5px;">Scam Type:</label>
+                        <select id="reportScamType" style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff;">
+                            <option value="OTP_PHISHING">OTP Phishing</option>
+                            <option value="DIGITAL_ARREST">Digital Arrest</option>
+                            <option value="UPI_FRAUD">UPI Fraud</option>
+                            <option value="KYC_SCAM">KYC Scam</option>
+                            <option value="LOTTERY">Lottery Fraud</option>
+                            <option value="FAMILY_IMPERSONATION">Family Impersonation</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+                    <div style="text-align: left;">
+                        <label style="display: block; color: #888; font-size: 0.85rem; margin-bottom: 5px;">Additional Details (optional):</label>
+                        <textarea id="reportDetails" placeholder="Describe the scam..." style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; min-height: 60px;"></textarea>
+                    </div>
+                </div>
+                <button class="warning-btn primary" style="background: #ef4444;" onclick="submitScamReport()">✓ Submit Report</button>
+                <button class="warning-btn secondary" onclick="handleSafelyEnd()">← Back</button>
+            `;
+        }
+
+        function submitScamReport() {
+            const scamType = document.getElementById('reportScamType').value;
+            const details = document.getElementById('reportDetails').value;
+
+            const report = {
+                type: scamType,
+                details: details,
+                message: lastAnalyzedScam?.text || 'Unknown',
+                confidence: lastAnalyzedScam?.confidence || 0,
+                timestamp: new Date().toLocaleString(),
+                id: Date.now()
+            };
+
+            reportedScams.push(report);
+
+            const content = document.getElementById('warningContent');
+            content.innerHTML = `
+                <div class="warning-icon">🎉</div>
+                <div class="warning-title" style="color: #22c55e;">Thank You!</div>
+                <div class="warning-reason">
+                    <div style="font-size: 1.1rem; margin-bottom: 15px;">Your report helps protect others in your community.</div>
+                    <div style="padding: 15px; background: rgba(34,197,94,0.2); border-radius: 10px;">
+                        <strong>Report submitted:</strong><br>
+                        📝 ${scamType.replace('_', ' ')}<br>
+                        🕐 ${report.timestamp}
+                    </div>
+                </div>
+                <button class="warning-btn primary" style="background: #22c55e;" onclick="document.getElementById('warningOverlay').classList.add('hidden')">👍 Done</button>
+                <button class="warning-btn secondary" onclick="showView('dashboard')">📊 View Dashboard</button>
+            `;
+
+            updateDashboard();
+
+            // Log
+            const log = document.getElementById('apiLog');
+            log.innerHTML += `<div class="response">> REPORT: Scam reported - ${scamType}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // ====== VIEW SWITCHING ======
+        function showView(view) {
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+
+            if (view === 'demo') {
+                document.getElementById('demoView').classList.add('active');
+                document.querySelectorAll('.nav-btn')[0].classList.add('active');
+            } else {
+                document.getElementById('dashboardView').classList.add('active');
+                document.querySelectorAll('.nav-btn')[1].classList.add('active');
+                document.getElementById('warningOverlay').classList.add('hidden');
+            }
+        }
+
+        // ====== DASHBOARD UPDATE ======
+        function updateDashboard() {
+            // Stats
+            document.getElementById('dashProtectedCount').textContent = protectedScams.length;
+            document.getElementById('dashReportedCount').textContent = reportedScams.length;
+            document.getElementById('dashMoneySaved').textContent = '₹' + (totalMoneySaved / 1000).toFixed(1) + 'K';
+
+            // Scam types chart
+            const typesContainer = document.getElementById('scamTypesChart');
+            if (Object.keys(scamTypeCount).length > 0) {
+                typesContainer.innerHTML = Object.entries(scamTypeCount).map(([type, count]) => `
+                    <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                        <div style="flex: 1; margin-right: 15px;">
+                            <div style="font-size: 0.85rem; color: #fff; margin-bottom: 5px;">${type.replace('_', ' ')}</div>
+                            <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                                <div style="height: 100%; width: ${Math.min(count * 25, 100)}%; background: linear-gradient(90deg, #ef4444, #f97316); border-radius: 4px;"></div>
+                            </div>
+                        </div>
+                        <div style="font-weight: 700; color: #ef4444;">${count}</div>
+                    </div>
+                `).join('');
+            }
+
+            // Reported scams list
+            const reportsList = document.getElementById('reportedScamsList');
+            if (reportedScams.length > 0) {
+                reportsList.innerHTML = reportedScams.slice().reverse().map(r => `
+                    <div style="background: rgba(239,68,68,0.1); border-left: 3px solid #ef4444; padding: 12px; border-radius: 8px; margin-bottom: 10px;">
+                        <div style="font-weight: 600; color: #ef4444; font-size: 0.8rem;">${r.type.replace('_', ' ')}</div>
+                        <div style="color: #ccc; font-size: 0.85rem; margin: 5px 0;">${r.message.substring(0, 60)}...</div>
+                        <div style="color: #666; font-size: 0.75rem;">${r.timestamp}</div>
+                    </div>
+                `).join('');
+            }
+
+            // Protection history
+            const historyContainer = document.getElementById('protectionHistory');
+            if (protectedScams.length > 0) {
+                historyContainer.innerHTML = protectedScams.slice().reverse().map(p => `
+                    <div style="background: rgba(34,197,94,0.1); border-left: 3px solid #22c55e; padding: 12px; border-radius: 8px; margin-bottom: 10px;">
+                        <div style="font-weight: 600; color: #22c55e; font-size: 0.8rem;">🛡️ Protected from ${p.rule_triggers?.[0]?.replace('_', ' ') || 'SCAM'}</div>
+                        <div style="color: #ccc; font-size: 0.85rem; margin: 5px 0;">${p.text?.substring(0, 60) || 'Unknown message'}...</div>
+                        <div style="color: #666; font-size: 0.75rem;">${p.timestamp}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // ====== CALL SHIELD DEMO ======
+        let callTimer = null;
+        let callSeconds = 0;
+
+        function startCallDemo() {
+            const phoneContent = document.getElementById('phoneContent');
+            const overlay = document.getElementById('warningOverlay');
+            overlay.classList.add('hidden');
+
+            // Clear any existing analysis display
+            document.getElementById('ruleResults').innerHTML = '<span style="color: #a855f7;">📞 Call Shield Active</span>';
+            document.getElementById('mlResults').innerHTML = `
+                <div class="ml-box">
+                    <div class="ml-row">
+                        <span>Mode</span>
+                        <span style="color: #a855f7;">Call Monitoring</span>
+                    </div>
+                    <div class="ml-row">
+                        <span>Status</span>
+                        <span style="color: #fbbf24;">Incoming Call</span>
+                    </div>
+                </div>
+            `;
+
+            // Show incoming call screen
+            phoneContent.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px; background: linear-gradient(180deg, #1a1a2e 0%, #0a0a0f 100%); height: 100%;">
+                    <div style="font-size: 0.8rem; color: #a855f7; text-transform: uppercase; margin-bottom: 10px;">📞 Incoming Call</div>
+                    
+                    <div style="width: 100px; height: 100px; background: linear-gradient(135deg, #ef4444, #b91c1c); border-radius: 50%; margin: 20px auto; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; animation: pulse 1.5s infinite;">
+                        🚨
+                    </div>
+                    
+                    <div style="font-size: 1.3rem; font-weight: 600; margin-bottom: 5px;">Unknown Number</div>
+                    <div style="color: #888; font-size: 0.9rem; margin-bottom: 25px;">+91 86854-XXXXX</div>
+                    
+                    <div style="background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); border-radius: 12px; padding: 15px; margin-bottom: 30px;">
+                        <div style="color: #ef4444; font-weight: 600; margin-bottom: 5px;">⚠️ Unknown Caller</div>
+                        <div style="color: #ccc; font-size: 0.85rem;">This number is not in your contacts. Be careful if they ask for money or OTP.</div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: center; gap: 30px;">
+                        <button onclick="declineCall()" style="width: 60px; height: 60px; border-radius: 50%; background: #ef4444; border: none; cursor: pointer; font-size: 1.5rem;">📵</button>
+                        <button onclick="acceptCall()" style="width: 60px; height: 60px; border-radius: 50%; background: #22c55e; border: none; cursor: pointer; font-size: 1.5rem; animation: pulse 1s infinite;">📞</button>
+                    </div>
+                    <div style="display: flex; justify-content: center; gap: 40px; margin-top: 10px; font-size: 0.8rem; color: #888;">
+                        <span>Decline</span>
+                        <span>Accept</span>
+                    </div>
+                </div>
+            `;
+
+            // Log
+            const log = document.getElementById('apiLog');
+            log.innerHTML += `<div class="request">> CALL: Incoming from unknown number</div>`;
+            log.innerHTML += `<div class="response">> SHIELD: Pre-pickup warning shown</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function declineCall() {
+            const phoneContent = document.getElementById('phoneContent');
+            phoneContent.innerHTML = `
+                <div style="text-align: center; padding: 80px 20px;">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">✅</div>
+                    <div style="font-size: 1.2rem; font-weight: 600; color: #22c55e;">Call Declined</div>
+                    <div style="color: #888; margin-top: 10px;">You stayed safe by avoiding an unknown caller.</div>
+                </div>
+            `;
+
+            const log = document.getElementById('apiLog');
+            log.innerHTML += `<div class="response">> ACTION: User declined unknown call ✓</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function acceptCall() {
+            const phoneContent = document.getElementById('phoneContent');
+            callSeconds = 0;
+
+            // Start call timer
+            callTimer = setInterval(() => {
+                callSeconds++;
+                updateCallScreen();
+
+                // Show gentle reminder after 10 seconds (simulating 1-2 minutes)
+                if (callSeconds === 10) {
+                    showCallReminder();
+                }
+
+                // Send guardian alert after 20 seconds (simulating long call)
+                if (callSeconds === 20) {
+                    sendLongCallAlert();
+                }
+            }, 1000);
+
+            updateCallScreen();
+
+            const log = document.getElementById('apiLog');
+            log.innerHTML += `<div class="request">> CALL: User accepted call</div>`;
+            log.innerHTML += `<div class="response">> SHIELD: Monitoring call duration...</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function updateCallScreen() {
+            const phoneContent = document.getElementById('phoneContent');
+            const mins = Math.floor(callSeconds / 60);
+            const secs = callSeconds % 60;
+            const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+            phoneContent.innerHTML = `
+                <div style="text-align: center; padding: 30px 20px; background: linear-gradient(180deg, #1a1a2e 0%, #0a0a0f 100%); height: 100%;">
+                    <div style="font-size: 0.8rem; color: #22c55e; text-transform: uppercase; margin-bottom: 10px;">● Call in Progress</div>
+                    
+                    <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #6b7280, #4b5563); border-radius: 50%; margin: 15px auto; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                        👤
+                    </div>
+                    
+                    <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 5px;">Unknown Caller</div>
+                    <div style="color: #888; font-size: 0.9rem;">+91 86854-XXXXX</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #22c55e; margin: 15px 0;">${timeStr}</div>
+                    
+                    <div id="callBanner" style="margin: 15px 0;"></div>
+                    
+                    <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px;">
+                        <button style="width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; font-size: 1.2rem;">🔇</button>
+                        <button style="width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; font-size: 1.2rem;">🔊</button>
+                        <button onclick="endCall()" style="width: 50px; height: 50px; border-radius: 50%; background: #ef4444; border: none; cursor: pointer; font-size: 1.2rem;">📵</button>
+                    </div>
+                    
+                    <div id="guardianAlert" style="margin-top: 20px;"></div>
+                </div>
+            `;
+
+            // Re-apply banner if it was shown
+            if (callSeconds >= 10) {
+                document.getElementById('callBanner').innerHTML = `
+                    <div style="background: rgba(251,191,36,0.2); border: 1px solid rgba(251,191,36,0.4); border-radius: 12px; padding: 12px; animation: fadeIn 0.5s;">
+                        <div style="color: #fbbf24; font-weight: 600; font-size: 0.85rem;">💡 Gentle Reminder</div>
+                        <div style="color: #ccc; font-size: 0.8rem; margin-top: 5px;">If this call asks for money or OTP, hang up and call family.</div>
+                    </div>
+                `;
+            }
+
+            // Show guardian alert if long call
+            if (callSeconds >= 20) {
+                document.getElementById('guardianAlert').innerHTML = `
+                    <div style="background: rgba(34,197,94,0.2); border: 1px solid rgba(34,197,94,0.4); border-radius: 12px; padding: 12px; animation: fadeIn 0.5s;">
+                        <div style="color: #22c55e; font-weight: 600; font-size: 0.85rem;">🤝 Rahul has been notified</div>
+                        <div style="color: #ccc; font-size: 0.8rem; margin-top: 5px;">Long unknown call detected. Your family knows.</div>
+                    </div>
+                `;
+            }
+        }
+
+        function showCallReminder() {
+            document.getElementById('mlResults').innerHTML = `
+                <div class="ml-box">
+                    <div class="ml-row">
+                        <span>Mode</span>
+                        <span style="color: #fbbf24;">Reminder Shown</span>
+                    </div>
+                    <div class="ml-row">
+                        <span>Duration</span>
+                        <span style="color: #fbbf24;">1+ minute</span>
+                    </div>
+                </div>
+            `;
+
+            const log = document.getElementById('apiLog');
+            log.innerHTML += `<div class="response">> SHIELD: Gentle reminder banner shown (1+ min)</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function sendLongCallAlert() {
+            document.getElementById('ruleResults').innerHTML = '<span class="rule-tag" style="background: rgba(34,197,94,0.2); color: #22c55e;">GUARDIAN_ALERT</span>';
+
+            document.getElementById('mlResults').innerHTML = `
+                <div class="ml-box">
+                    <div class="ml-row">
+                        <span>Mode</span>
+                        <span style="color: #22c55e;">Alert Sent</span>
+                    </div>
+                    <div class="ml-row">
+                        <span>Duration</span>
+                        <span style="color: #ef4444;">2+ minutes</span>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('guardianStatus').innerHTML = `
+                <div style="background: rgba(34,197,94,0.2); padding: 10px; border-radius: 8px; border-left: 3px solid #22c55e;">
+                    <div style="color: #22c55e; font-weight: 600;">🔔 Alert Sent!</div>
+                    <div style="color: #ccc; font-size: 0.85rem; margin-top: 5px;">Rahul notified about long unknown call</div>
+                </div>
+            `;
+
+            const log = document.getElementById('apiLog');
+            log.innerHTML += `<div class="response">> GUARDIAN: Long call alert sent to Rahul</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function endCall() {
+            if (callTimer) {
+                clearInterval(callTimer);
+                callTimer = null;
+            }
+
+            const phoneContent = document.getElementById('phoneContent');
+            phoneContent.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px;">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">📵</div>
+                    <div style="font-size: 1.2rem; font-weight: 600; color: #888;">Call Ended</div>
+                    <div style="color: #666; margin: 10px 0;">Duration: ${Math.floor(callSeconds / 60)}:${(callSeconds % 60).toString().padStart(2, '0')}</div>
+                    
+                    <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin: 20px 0; text-align: left;">
+                        <div style="font-weight: 600; margin-bottom: 10px;">How was this call?</div>
+                        <button onclick="reportScamCall()" style="width: 100%; padding: 12px; background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); border-radius: 8px; color: #ef4444; font-weight: 600; cursor: pointer; margin-bottom: 8px;">🚨 Report as Scam Call</button>
+                        <button onclick="markSafeCall()" style="width: 100%; padding: 12px; background: rgba(34,197,94,0.2); border: 1px solid rgba(34,197,94,0.4); border-radius: 8px; color: #22c55e; font-weight: 600; cursor: pointer;">✅ It was safe</button>
+                    </div>
+                </div>
+            `;
+
+            const log = document.getElementById('apiLog');
+            log.innerHTML += `<div class="response">> CALL: Ended after ${callSeconds}s</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function reportScamCall() {
+            reportedScams.push({
+                type: 'SCAM_CALL',
+                message: 'Unknown caller - reported as scam',
+                confidence: 0.9,
+                timestamp: new Date().toLocaleString(),
+                id: Date.now()
+            });
+
+            const phoneContent = document.getElementById('phoneContent');
+            phoneContent.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px;">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">🎉</div>
+                    <div style="font-size: 1.2rem; font-weight: 600; color: #22c55e;">Thank You!</div>
+                    <div style="color: #ccc; margin: 15px 0;">Number reported and blocked.</div>
+                    <div style="background: rgba(34,197,94,0.2); border-radius: 12px; padding: 15px; text-align: left;">
+                        <div style="font-size: 0.85rem;">✓ Number added to community blocklist</div>
+                        <div style="font-size: 0.85rem;">✓ Other seniors will be warned</div>
+                        <div style="font-size: 0.85rem;">✓ Rahul has been informed</div>
+                    </div>
+                </div>
+            `;
+
+            updateDashboard();
+
+            const log = document.getElementById('apiLog');
+            log.innerHTML += `<div class="response">> REPORT: Scam call reported and number blocked</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function markSafeCall() {
+            const phoneContent = document.getElementById('phoneContent');
+            phoneContent.innerHTML = `
+                <div style="text-align: center; padding: 80px 20px;">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">👍</div>
+                    <div style="font-size: 1.2rem; font-weight: 600; color: #22c55e;">Great!</div>
+                    <div style="color: #888; margin-top: 10px;">Glad the call was safe.</div>
+                </div>
+            `;
+        }
+
+        // ====== REPORT NEW SCAM FOR TRAINING ======
+        let crowdsourcedScams = [];
+
+        function showNewScamReport() {
+            const phoneContent = document.getElementById('phoneContent');
+            phoneContent.innerHTML = `
+                <div style="padding: 20px; text-align: left;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 2.5rem;">📢</div>
+                        <div style="font-size: 1.1rem; font-weight: 600; color: #fbbf24;">Report New Scam Type</div>
+                        <div style="color: #888; font-size: 0.8rem;">Help train our AI with new patterns</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; color: #888; font-size: 0.8rem; margin-bottom: 5px;">Scam Message *</label>
+                        <textarea id="newScamMessage" placeholder="Paste the scam message here..." style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; min-height: 80px; font-size: 0.9rem;"></textarea>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; color: #888; font-size: 0.8rem; margin-bottom: 5px;">Scam Category *</label>
+                        <select id="newScamCategory" style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff;">
+                            <option value="">Select category...</option>
+                            <option value="OTP_PHISHING">OTP Phishing</option>
+                            <option value="DIGITAL_ARREST">Digital Arrest</option>
+                            <option value="UPI_FRAUD">UPI Fraud</option>
+                            <option value="KYC_SCAM">KYC Scam</option>
+                            <option value="LOTTERY_PRIZE">Lottery/Prize Fraud</option>
+                            <option value="FAMILY_IMPERSONATION">Family Impersonation</option>
+                            <option value="JOB_SCAM">Job/Work from Home Scam</option>
+                            <option value="INVESTMENT_SCAM">Investment/Crypto Scam</option>
+                            <option value="LOAN_SCAM">Loan/Credit Scam</option>
+                            <option value="OTHER">Other (New Type)</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; color: #888; font-size: 0.8rem; margin-bottom: 5px;">Key Patterns (optional)</label>
+                        <input type="text" id="newScamPatterns" placeholder="e.g., 'crypto profit', 'double money'" style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff;">
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; color: #888; font-size: 0.8rem; margin-bottom: 5px;">Source</label>
+                        <div style="display: flex; gap: 10px;">
+                            <label style="display: flex; align-items: center; gap: 5px; color: #ccc; font-size: 0.85rem;">
+                                <input type="radio" name="scamSource" value="SMS" checked> SMS
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; color: #ccc; font-size: 0.85rem;">
+                                <input type="radio" name="scamSource" value="WhatsApp"> WhatsApp
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; color: #ccc; font-size: 0.85rem;">
+                                <input type="radio" name="scamSource" value="Call"> Call
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button onclick="submitNewScam()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #fbbf24, #f59e0b); border: none; border-radius: 10px; color: #000; font-weight: 600; font-size: 1rem; cursor: pointer;">
+                        🚀 Submit for AI Training
+                    </button>
+                    <button onclick="cancelNewScam()" style="width: 100%; padding: 12px; background: transparent; border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: #888; font-weight: 500; margin-top: 10px; cursor: pointer;">
+                        Cancel
+                    </button>
+                </div>
+            `;
+        }
+
+        function submitNewScam() {
+            const message = document.getElementById('newScamMessage').value;
+            const category = document.getElementById('newScamCategory').value;
+            const patterns = document.getElementById('newScamPatterns').value;
+            const source = document.querySelector('input[name="scamSource"]:checked').value;
+
+            if (!message || !category) {
+                alert('Please fill in the scam message and category');
+                return;
+            }
+
+            const newScam = {
+                message: message,
+                category: category,
+                patterns: patterns,
+                source: source,
+                timestamp: new Date().toISOString(),
+                id: Date.now(),
+                status: 'pending_review'
+            };
+
+            crowdsourcedScams.push(newScam);
+
+            const phoneContent = document.getElementById('phoneContent');
+            phoneContent.innerHTML = `
+                <div style="text-align: center; padding: 50px 20px;">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">🎉</div>
+                    <div style="font-size: 1.3rem; font-weight: 600; color: #22c55e;">Thank You!</div>
+                    <div style="color: #ccc; margin: 15px 0;">Your report helps make our AI smarter.</div>
+                    
+                    <div style="background: rgba(34,197,94,0.1); border-radius: 12px; padding: 20px; text-align: left; margin: 20px 0;">
+                        <div style="font-weight: 600; margin-bottom: 10px;">What happens next:</div>
+                        <div style="font-size: 0.85rem; color: #ccc; line-height: 1.8;">
+                            ✓ Report queued for review<br>
+                            ✓ Verified by security team<br>
+                            ✓ Added to training dataset<br>
+                            ✓ Model retrained weekly<br>
+                            ✓ All users protected!
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(251,191,36,0.1); border-radius: 10px; padding: 12px; font-size: 0.85rem; color: #fbbf24;">
+                        📊 ${crowdsourcedScams.length} scam${crowdsourcedScams.length > 1 ? 's' : ''} reported this session
+                    </div>
+                </div>
+            `;
+
+            // Log
+            const log = document.getElementById('apiLog');
+            log.innerHTML += `<div class="response">> CROWDSOURCE: New ${category} scam submitted</div>`;
+            log.innerHTML += `<div class="response">> TRAINING: Queued for next model update</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function cancelNewScam() {
+            const phoneContent = document.getElementById('phoneContent');
+            phoneContent.innerHTML = `
+                <div style="text-align: center; padding: 80px 20px; color: #666;">
+                    <p style="font-size: 3rem; margin-bottom: 20px;">👈</p>
+                    <p>Select a scenario or enter custom text</p>
+                </div>
+            `;
         }
     </script>
 </body>

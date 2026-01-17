@@ -194,51 +194,71 @@ class ScamDetector:
         rule_triggered = len(rule_result.triggered_rules) > 0
         rule_score = self._calculate_rule_score(rule_result)
         
+        # Check for whitelist (legitimate messages that ML might misclassify)
+        is_whitelisted = rule_result.detected_signals.get('is_whitelisted', False)
+        is_lottery_scam = rule_result.detected_signals.get('is_lottery_scam', False)
+        
         # Check if rules definitively determine outcome
         rule_override = False
-        if rule_score >= self.RULE_SCAM_THRESHOLD:
+        if is_whitelisted:
+            # WHITELIST: Known safe pattern (e.g., OTP notification, balance check)
+            rule_override = True
+            final_verdict = FinalVerdict.SAFE
+            final_confidence = 0.90
+        elif is_lottery_scam:
+            # LOTTERY SCAM: High confidence scam
+            rule_override = True
+            final_verdict = FinalVerdict.SCAM
+            final_confidence = 0.85
+        elif rule_score >= self.RULE_SCAM_THRESHOLD:
             # Rule Engine says SCAM - this OVERRIDES ML
             rule_override = True
             final_verdict = FinalVerdict.SCAM
             final_confidence = min(0.95, 0.6 + (rule_score - 60) * 0.01)
-        elif rule_score < 10 and not rule_triggered:
-            # Very clean - no need for ML
-            rule_override = True
-            final_verdict = FinalVerdict.SAFE
-            final_confidence = 0.95
         else:
-            # Uncertain - need ML
+            # Let ML decide - rules are not strong enough to override
             rule_override = False
             final_verdict = None
             final_confidence = None
         
         # =====================================================
-        # STEP 2: DISTILBERT (IF RULES ARE UNCERTAIN)
+        # STEP 2: DISTILBERT (ALWAYS RUN)
         # =====================================================
         ml_result = None
         ml_used = False
         
-        if not rule_override and self.distilbert and self.distilbert.loaded:
+        # ALWAYS run DistilBERT
+        if self.distilbert and self.distilbert.loaded:
             ml_result = self.distilbert.predict(text)
-            ml_used = True
-            
-            # Combine rule + ML
-            if ml_result.label == "SCAM" and ml_result.confidence >= self.ML_HIGH_CONFIDENCE:
-                final_verdict = FinalVerdict.SCAM
-                final_confidence = ml_result.confidence
-            elif ml_result.label == "SAFE" and ml_result.confidence >= self.ML_HIGH_CONFIDENCE:
-                # But rules found something suspicious
-                if rule_score >= self.RULE_SUSPICIOUS_THRESHOLD:
-                    final_verdict = FinalVerdict.SUSPICIOUS
-                    final_confidence = 0.5 + (rule_score - 30) * 0.01
-                else:
-                    final_verdict = FinalVerdict.SAFE
+            ml_used = not rule_override
+        
+        # If rules didn't override, use ML to determine verdict
+        if not rule_override and ml_result:
+            if ml_result.label == "SCAM":
+                # ML says SCAM
+                if ml_result.confidence >= 0.7:
+                    # High confidence SCAM - definite scam
+                    final_verdict = FinalVerdict.SCAM
                     final_confidence = ml_result.confidence
-            else:
-                # ML is uncertain - use rules as tiebreaker
-                if rule_score >= self.RULE_SUSPICIOUS_THRESHOLD:
+                elif ml_result.confidence >= 0.55:
+                    # Medium confidence SCAM (55-70%) - suspicious
+                    final_verdict = FinalVerdict.SUSPICIOUS
+                    final_confidence = ml_result.confidence
+                elif rule_triggered:
+                    # Low confidence SCAM but rules also found something - suspicious
                     final_verdict = FinalVerdict.SUSPICIOUS
                     final_confidence = max(0.5, ml_result.confidence)
+                else:
+                    # Low confidence SCAM with NO rule backup - too uncertain, call SAFE
+                    # 53% SCAM with 0 rules = ML is guessing, don't alarm user
+                    final_verdict = FinalVerdict.SAFE
+                    final_confidence = 1 - ml_result.confidence  # Flip to SAFE confidence
+            else:
+                # ML says SAFE
+                if rule_score >= self.RULE_SUSPICIOUS_THRESHOLD:
+                    # Rules found something - be cautious
+                    final_verdict = FinalVerdict.SUSPICIOUS
+                    final_confidence = 0.5 + (rule_score - 30) * 0.01
                 else:
                     final_verdict = FinalVerdict.SAFE
                     final_confidence = ml_result.confidence
@@ -248,6 +268,9 @@ class ScamDetector:
             if rule_score >= self.RULE_SUSPICIOUS_THRESHOLD:
                 final_verdict = FinalVerdict.SUSPICIOUS
                 final_confidence = 0.5 + (rule_score - 30) * 0.01
+            elif rule_triggered:
+                final_verdict = FinalVerdict.SUSPICIOUS
+                final_confidence = 0.5
             else:
                 final_verdict = FinalVerdict.SAFE
                 final_confidence = 0.7

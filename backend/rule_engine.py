@@ -53,11 +53,57 @@ class RuleEngine:
         self.upi_pattern = re.compile(r'[a-zA-Z0-9._-]+@[a-zA-Z]+', re.IGNORECASE)
         self.legitimate_upi_suffixes = {'okaxis', 'oksbi', 'okicici', 'okhdfc', 'paytm', 'ybl', 'ibl', 'upi'}
         
-        # OTP-related phrases (English + Hindi)
+        # WHITELIST: Safe/legitimate message patterns (override ML false positives)
+        # These must be SPECIFIC to avoid matching scam patterns like "Share OTP 123456"
+        self.safe_patterns = [
+            r'your otp is \d+.*do not share',  # OTP notification with warning
+            r'otp.*is \d+.*never share',
+            r'your.*otp.*is\s*:?\s*\d+',  # "your hdfc otp is 58679" (requires "is")
+            r'otp\s*(?:is|:)\s*\d+',  # "OTP is 123456" or "OTP: 123456" (requires is/:)
+            r'(?:sbi|hdfc|icici|axis|kotak|bank).*otp.*(?:is|:)\s*\d+',  # "Your HDFC OTP is 12345"
+            r'otp\s*-\s*\d{4,6}',  # "OTP-123456" (requires hyphen, not space)
+            r'your.*balance is rs\.?\s*\d+',  # Account balance notification
+            r'your.*bill.*is.*due',  # Bill reminders
+            r'your.*refund.*processed',  # Refund confirmation
+            r'order.*delivered',  # Delivery confirmation
+            r'order.*shipped',  # Shipping confirmation
+            r'order.*dispatched',
+            r'has been shipped',  # Common shipping notification
+            r'will arrive',  # Arrival notification
+            r'track at',  # Tracking link (legitimate)
+            r'pnr.*status.*confirmed',  # Train booking
+            r'appointment.*confirmed',  # Doctor appointments
+            r'payment.*successful',  # Payment success
+            r'transaction.*successful',
+            r'cab.*arriving',  # Cab services
+            r'otp for.*login',  # Login OTP notification
+            r'verification code.*is \d+',  # Verification code notification
+            r'one.?time.?password.*is\s*\d+',  # "One-Time Password is 123456"
+        ]
+        
+        # LOTTERY/PRIZE SCAM patterns
+        self.lottery_scam_patterns = [
+            r'(?:won|win|winner)\s*(?:of\s*)?(?:rs\.?|₹|inr)?\s*\d+\s*(?:lakh|crore|lac)',
+            r'congratulations.*(?:won|win|lottery|prize)',
+            r'(?:lottery|lucky draw|prize).*(?:won|winner)',
+            r'you\s*(?:have\s*)?won\s*\d+\s*(?:lakh|crore)',
+        ]
+        
+        # OTP-related phrases - ONLY trigger on OTP REQUESTS, not mentions
+        # "no otp needed" should NOT trigger, "share otp" SHOULD trigger
+        # Allow bank names between: "share your sbi otp" should trigger
         self.otp_phrases = [
-            r'\botp\b', r'\bpin\b', r'one.?time.?password', r'verification.?code',
-            r'share.?otp', r'tell.?otp', r'otp.?share', r'otp.?batao', r'otp.?bata',
-            r'code.?share', r'code.?batao'
+            r'share\s+(?:\w+\s+)*otp',  # share otp, share the otp, share your sbi otp
+            r'send\s+(?:\w+\s+)*otp',   # send otp, send your hdfc otp
+            r'tell\s+(?:\w+\s+)*otp',   # tell me the otp
+            r'give\s+(?:\w+\s+)*otp',   # give me your otp
+            r'otp\s*(?:share|send|batao|bata|dijiye)',  # otp share karo
+            r'enter\s+(?:\w+\s+)*otp',  # enter the otp
+            r'type\s+(?:\w+\s+)*otp',   # type your otp
+            r'(?:share|send|enter|give)\s+(?:\w+\s+)*(?:pin|code)',  # share your pin/code
+            r'code\s*(?:share|batao)',  # code batao
+            r'verification\s*code\s*(?:share|send|enter)',
+            r'otp\s*from\s*bank',  # "otp from bank" is always suspicious
         ]
         
         # Urgency phrases
@@ -75,7 +121,9 @@ class RuleEngine:
             r'account.?freeze', r'account.?block', r'will be.?blocked',
             r'legal.?action', r'fir.?filed?', r'police.?complaint', r'arrested?',
             r'digital.?arrest', r'under.?arrest', r'cyber.?crime', r'money.?laundering',
-            r'power.?cut', r'disconnection?', r'deactivat', r'suspend'
+            r'power.?cut', r'disconnection?', r'deactivat', r'suspend',
+            r'terrorism', r'terrorist', r'hawala', r'drug.?trafficking',  # Anti-terrorism threats
+            r'aadhaar.*used', r'pan.*misused', r'identity.*stolen',  # Identity theft threats
         ]
         self.threat_phrases_hi = [
             r'giraftaar', r'arrest', r'kanoon', r'police', r'jail'
@@ -88,12 +136,15 @@ class RuleEngine:
             r'court.?notice', r'settlement.?required', r'legal.?notice'
         ]
         
-        # Family impersonation patterns
+        # Family impersonation patterns ("Papa this is Rahul new number")
         self.family_impersonation_patterns = [
             r'hi.?mom', r'hi.?dad', r'hi.?papa', r'hi.?mummy',
-            r'new.?number', r'phone.?lost', r'emergency',
-            r"don'?t.?call", r'send.?money', r'transfer.?now',
-            r"it'?s.?me", r'trouble', r'help.?me'
+            r'papa.*new.?number', r'mummy.*new.?number', r'mom.*new.?number', r'dad.*new.?number',
+            r'this.?is.*new.?number', r'my.?new.?number',
+            r'phone.?lost', r'phone.?stolen', r'lost.?my.?phone',
+            r'new.?number.*send.?money', r'send.?money.*urgent',
+            r"don'?t.?call", r'transfer.?now', r'help.?me.*money',
+            r"it'?s.?me", r'trouble', r'emergency.*money'
         ]
         
         # Known scam sender patterns
@@ -130,11 +181,35 @@ class RuleEngine:
             'has_threat': False,
             'has_authority_claim': False,
             'has_phone_number': False,
+            'is_whitelisted': False,
+            'is_lottery_scam': False,
         }
         reasons_en = []
         reasons_hi = []
         triggered_rules = []
         scam_score = 0
+        
+        # --- WHITELIST CHECK: Skip scam checks for known safe patterns ---
+        # But DON'T whitelist if message also contains scam indicators
+        scam_indicators = ['share', 'send money', 'lottery', 'win prize', 'won', 'claim', 'verify immediately', 'blocked', 'urgent']
+        has_scam_indicator = any(indicator in text_lower for indicator in scam_indicators)
+        
+        if not has_scam_indicator:
+            for pattern in self.safe_patterns:
+                if re.search(pattern, text_lower):
+                    signals['is_whitelisted'] = True
+                    triggered_rules.append("WHITELISTED")
+                    break
+        
+        # --- LOTTERY SCAM CHECK ---
+        for pattern in self.lottery_scam_patterns:
+            if re.search(pattern, text_lower):
+                signals['is_lottery_scam'] = True
+                scam_score += 40
+                reasons_en.append("Lottery/prize scam - no legitimate lottery contacts via SMS")
+                reasons_hi.append("लॉटरी/इनाम घोटाला - कोई असली लॉटरी SMS से संपर्क नहीं करती")
+                triggered_rules.append("LOTTERY_SCAM")
+                break
         
         # --- Rule 1: Check for URLs and shorteners ---
         urls = re.findall(r'https?://[^\s]+', text, re.IGNORECASE)
@@ -220,19 +295,31 @@ class RuleEngine:
         
         # --- Rule 9: Family Impersonation patterns ---
         family_score = 0
-        family_indicators = ['new.?number', 'phone.?lost', "don'?t.?call", 'emergency', "it'?s.?me"]
+        family_indicators = ['new.?number', 'phone.?lost', "don'?t.?call", 'emergency', "it'?s.?me", 'papa', 'mummy', 'mom', 'dad']
+        money_indicators = ['send.?money', 'transfer', 'urgently', 'urgent', 'immediately', 'asap']
+        
         for pattern in family_indicators:
             if re.search(pattern, text_lower):
                 family_score += 1
         
-        if family_score >= 2 and signals['has_upi']:
+        money_mentioned = any(re.search(p, text_lower) for p in money_indicators)
+        
+        # Trigger if: (2+ family indicators + UPI) OR (family + money + urgency)
+        if (family_score >= 2 and signals['has_upi']) or (family_score >= 1 and money_mentioned and signals['has_urgency']):
             scam_score += 45
-            reasons_en.append("SUSPICIOUS: Family impersonation + payment request. Verify by calling old number!")
+            reasons_en.append("SUSPICIOUS: Family impersonation + money request. Verify by calling old number!")
             reasons_hi.append("संदेह: परिवार का नकली संदेश + पैसे माँग रहा है। पुराने नंबर पर कॉल करके पुष्टि करें!")
             triggered_rules.append("FAMILY_IMPERSONATION")
         
         # --- Determine final risk level ---
-        if scam_score >= 60:
+        # WHITELIST OVERRIDE: If message matches safe pattern, force SAFE
+        if signals['is_whitelisted']:
+            risk_level = RiskLevel.SAFE
+            confidence = 0.85
+            reasons_en = ["Legitimate notification (matches safe pattern)"]
+            reasons_hi = ["वैध सूचना (सुरक्षित पैटर्न से मिलता है)"]
+            triggered_rules = ["WHITELISTED"]
+        elif scam_score >= 60:
             risk_level = RiskLevel.SCAM
             confidence = min(0.95, 0.6 + (scam_score - 60) * 0.01)
         elif scam_score >= 30:

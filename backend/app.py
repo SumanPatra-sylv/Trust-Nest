@@ -20,6 +20,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from detector import ScamDetector
+from guardian_notifier import get_notifier
 
 # Initialize FastAPI
 app = FastAPI(
@@ -37,11 +38,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize detector
+# Initialize detector and notifier
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(script_dir)
 model_dir = os.path.join(project_dir, "models")
 detector = ScamDetector(model_dir=model_dir)
+guardian_notifier = get_notifier()
 
 
 # ============================================================================
@@ -51,6 +53,16 @@ detector = ScamDetector(model_dir=model_dir)
 class AnalyzeRequest(BaseModel):
     text: str
     sender_id: Optional[str] = None
+    notify_guardian: Optional[bool] = True  # Auto-notify on scam detection
+
+
+class NotifyGuardianRequest(BaseModel):
+    scam_type: str
+    message_preview: str
+    confidence: float
+    guardian_name: Optional[str] = "Family Member"
+    senior_name: Optional[str] = "Your parent"
+    guardian_phone: Optional[str] = None
 
 
 class AnalyzeResponse(BaseModel):
@@ -78,6 +90,10 @@ class AnalyzeResponse(BaseModel):
     # Guardian
     should_escalate: bool
     escalation_reason: Optional[str]
+    
+    # SMS notification result
+    sms_sent: Optional[bool] = None
+    sms_error: Optional[str] = None
 
 
 class QuickAnalyzeResponse(BaseModel):
@@ -92,6 +108,7 @@ class HealthResponse(BaseModel):
     rule_engine: bool
     distilbert: bool
     distilbert_path: Optional[str]
+    twilio_enabled: bool
 
 
 # ============================================================================
@@ -105,7 +122,8 @@ async def health_check():
         status="healthy",
         rule_engine=True,  # Always available
         distilbert=detector.distilbert is not None and detector.distilbert.loaded,
-        distilbert_path=detector.distilbert.model_path if detector.distilbert else None
+        distilbert_path=detector.distilbert.model_path if detector.distilbert else None,
+        twilio_enabled=guardian_notifier.enabled
     )
 
 
@@ -114,16 +132,28 @@ async def analyze_message(request: AnalyzeRequest):
     """
     Full analysis with Rule Engine → DistilBERT → Guardian pipeline.
     
-    Returns complete explainability including:
-    - Rule triggers
-    - ML label + confidence
-    - Bilingual explanations
-    - Guardian escalation decision
+    If scam detected and notify_guardian=True, sends SMS alert to family.
     """
     if not request.text or len(request.text.strip()) == 0:
         raise HTTPException(status_code=400, detail="Empty message text")
     
     result = detector.detect(request.text, request.sender_id)
+    
+    # Send SMS if scam detected and escalation needed
+    sms_sent = None
+    sms_error = None
+    
+    if result.should_escalate and request.notify_guardian:
+        scam_type = result.rule_triggers[0] if result.rule_triggers else "SUSPICIOUS"
+        sms_result = guardian_notifier.notify_family(
+            scam_type=scam_type,
+            message_preview=request.text,
+            confidence=result.confidence,
+            guardian_name="Rahul",  # Demo name
+            senior_name="Mom"  # Demo name
+        )
+        sms_sent = sms_result.get('success', False)
+        sms_error = sms_result.get('error')
     
     return AnalyzeResponse(
         verdict=result.verdict,
@@ -140,8 +170,27 @@ async def analyze_message(request: AnalyzeRequest):
         action_en=result.action_en,
         action_hi=result.action_hi,
         should_escalate=result.should_escalate,
-        escalation_reason=result.escalation_reason
+        escalation_reason=result.escalation_reason,
+        sms_sent=sms_sent,
+        sms_error=sms_error
     )
+
+
+@app.post("/api/notify-guardian")
+async def notify_guardian(request: NotifyGuardianRequest):
+    """
+    Manually send SMS alert to guardian.
+    Used by frontend buttons like 'Call Family for Help'.
+    """
+    result = guardian_notifier.notify_family(
+        scam_type=request.scam_type,
+        message_preview=request.message_preview,
+        confidence=request.confidence,
+        guardian_name=request.guardian_name,
+        senior_name=request.senior_name,
+        custom_guardian_number=request.guardian_phone
+    )
+    return result
 
 
 @app.post("/api/analyze/quick", response_model=QuickAnalyzeResponse)
